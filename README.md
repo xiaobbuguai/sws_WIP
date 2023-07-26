@@ -1,4 +1,4 @@
-# NORTHSTAR-CN STARWISH SERVER USING MODS REPOSITORY
+# NORTHSTAR STARWISH SERVER USING MODS REPOSITORY
 
 Maintained by [DBmaoha](https://github.com/DBmaoha), for saving own server using(and modified) mods.
 
