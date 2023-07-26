@@ -1,0 +1,4 @@
+bt_7274.nut涉及的文件如下
+mod\scripts\vscripts\rodeo\_rodeo_titan.gnut 381行 1260行
+mod\scripts\vscripts\sh_anim_aliases.gnut 29行 70行
+mod\scripts\vscripts\melee\_melee_synced_titan.gnut 910行

@@ -1,0 +1,397 @@
+untyped
+
+global function Buddys_Init;
+global bool MOD_RANDOMUSEFIRSTEMBARK;
+global bool MOD_FORCEUSEFIRSTEMBARK;
+
+//至尊泰坦
+asset LockedRocketTitan = $"models/titans/medium/titan_medium_tone_prime.mdl" //至尊强力
+asset IonTitan = $"models/titans/medium/titan_medium_ion_prime.mdl" //至尊栗子
+asset NSTitan = $"models/titans/light/titan_light_northstar_prime.mdl" //至尊北極星
+asset LegionTitan = $"models/titans/heavy/titan_heavy_legion_prime.mdl" //至尊軍團
+asset FireTitan= $"models/titans/heavy/titan_heavy_scorch_prime.mdl" //至尊烈焰
+asset SwordTitan = $"models/titans/light/titan_light_ronin_prime.mdl"  // 至尊浪人
+
+//普通泰坦 S代表Simple
+asset SLockedRocketTitan = $"models/titans/medium/titan_medium_wraith.mdl" //强力
+asset SSwordTitan = $"models/titans/light/titan_light_locust.mdl"  // 浪人
+asset LiveTitan= $"models/titans/medium/titan_medium_vanguard.mdl" //帝王
+asset SIonTitan = $"models/titans/medium/titan_medium_ajax.mdl" //栗子
+asset SNSTitan = $"models/titans/light/titan_light_raptor.mdl" //北極星
+asset SLegionTitan = $"models/titans/heavy/titan_heavy_deadbolt.mdl" //軍團
+asset SFireTitan= $"models/titans/heavy/titan_heavy_ogre.mdl" //烈焰
+
+
+void function Buddys_Init() {
+    #if SERVER
+		PrecacheModel( SwordTitan )
+		PrecacheModel( LockedRocketTitan )
+		PrecacheModel( IonTitan )
+		PrecacheModel( NSTitan )
+		PrecacheModel( LegionTitan )
+		PrecacheModel( FireTitan )
+        PrecacheModel( LiveTitan )
+        PrecacheModel( SLockedRocketTitan )
+        PrecacheModel( SSwordTitan )
+        PrecacheModel( SIonTitan )
+        PrecacheModel( SNSTitan )
+        PrecacheModel( SLegionTitan )
+        PrecacheModel( SFireTitan )
+		AddCallback_OnPilotBecomesTitan( Buddys_OnPilotBecomesTitan )
+		AddCallback_OnPilotBecomesTitan( Titan_ModifyHealth )
+		AddSpawnCallback( "npc_titan", MDF_OnTitanSpawned )
+		AddCallback_OnTitanGetsNewTitanLoadout( TFind_Tempered_Plating_mod )
+		AddClientCommandCallback( "Mod_AllTeams", Mod_AllTeams )
+		RegisterSignal( "OnPlayerUse" )
+
+		MOD_RANDOMUSEFIRSTEMBARK = true
+		MOD_FORCEUSEFIRSTEMBARK = false
+    #endif
+}
+
+bool function Mod_AllTeams(entity player, array<string> args){
+	int teams = player.GetTeam()
+	foreach (entity p in GetPlayerArray()) {
+		SetTeam(p, teams)
+	}
+	return true
+}
+
+void function Buddys_OnTitanC_Jian(entity titan){
+	titan.EndSignal( "DisembarkingTitan" )
+	titan.EndSignal( "TitanEjectionStarted" )
+	titan.EndSignal( "OnDeath" )
+	titan.EndSignal( "OnDestroy" )
+	while(IsValid(titan)){
+		if(titan.IsTitan()){
+		}
+		wait 3.0
+	}
+}
+
+void function Buddys_OnPilotBecomesTitan( entity player, entity titan ){
+	printt ("玩家模型是" + player.GetModelName())
+}
+
+void function MDF_OnTitanSpawned(entity titan){
+	//普通泰坦拿走武器
+
+	entity owner = GetPetTitanOwner( titan )
+	if( !IsValid( owner ) )
+	return
+	if( !owner.IsPlayer() )
+	return
+	//至尊浪人
+	if(titan.GetModelName() == SwordTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+        titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+	//至尊强力
+	if(titan.GetModelName() == LockedRocketTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+        titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+	//至尊离子
+	if(titan.GetModelName() == IonTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+        titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+	//至尊北极星
+	if(titan.GetModelName() == NSTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+        titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+	//至尊军团
+	if(titan.GetModelName() == LegionTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+        titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+    //帝王
+    if(titan.GetModelName() == LiveTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+    //至尊烈焰
+    if(titan.GetModelName() == FireTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+    //强力
+    if(titan.GetModelName() == SLockedRocketTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+    //浪人
+    if(titan.GetModelName() == SSwordTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+    //离子
+    if(titan.GetModelName() == SIonTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+    //北极星
+    if(titan.GetModelName() == SNSTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+    //军团
+    if(titan.GetModelName() == SLegionTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+    //烈焰
+    if(titan.GetModelName() == SFireTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+        titan.TakeOffhandWeapon( OFFHAND_SPECIAL )
+        titan.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+}
+
+void function Titan_ModifyHealth(entity player, entity titan){
+	//泰坦获得脉冲刀
+	//浪人
+	if(player.GetModelName() == SwordTitan){
+		player.SetMaxHealth(12500)
+		player.SetHealth(12500)
+		printt ("======至尊华强======")
+		NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+	//强力
+    if(player.GetModelName() == LockedRocketTitan){
+		player.SetMaxHealth(17500)
+		player.SetHealth(17500)
+		printt ("======至尊郝哥======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+	//离子
+	if(player.GetModelName() == IonTitan){
+		player.SetMaxHealth(17500)
+		player.SetHealth(17500)
+		printt ("======至尊滋滋======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+	//北极星
+	if(player.GetModelName() == NSTitan){
+		player.SetMaxHealth(12500)
+		player.SetHealth(12500)
+		printt ("======至尊摆寄星======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+		}
+	//军团
+	if(player.GetModelName() == LegionTitan){
+		player.SetMaxHealth(22500)
+		player.SetHealth(22500)
+		printt ("======至尊軍團======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+	//帝王
+	if(player.GetModelName() == LiveTitan){
+		player.SetMaxHealth(17500)
+		player.SetHealth(17500)
+		printt ("======帝王======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+	//烈焰
+	if(player.GetModelName() == FireTitan){
+		player.SetMaxHealth(22500)
+		player.SetHealth(22500)
+		printt ("======至尊炸服机======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+	//普通烈焰
+	if(player.GetModelName() == SFireTitan){
+		player.SetMaxHealth(22500)
+		player.SetHealth(22500)
+		printt ("======普通炸服机======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+	//普通浪人
+	if(player.GetModelName() == SSwordTitan){
+		player.SetMaxHealth(12500)
+		player.SetHealth(12500)
+		printt ("======普通华强======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+    //普通离子
+	if(player.GetModelName() == SIonTitan){
+		player.SetMaxHealth(17500)
+		player.SetHealth(17500)
+		printt ("======普通滋滋======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+    //普通军团
+	if(player.GetModelName() == SLegionTitan){
+		player.SetMaxHealth(22500)
+		player.SetHealth(22500)
+		printt ("======普通军团======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+    //普通强力
+	if(player.GetModelName() == SLockedRocketTitan){
+		player.SetMaxHealth(17500)
+		player.SetHealth(17500)
+		printt ("======普通郝哥======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+    //普通北极星
+	if(player.GetModelName() == SNSTitan){
+		player.SetMaxHealth(12500)
+		player.SetHealth(12500)
+		printt ("======普通摆寄星======")
+        NSSendInfoMessageToPlayer(player, "泰坦已修改");
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.GiveOffhandWeapon("mp_weapon_grenade_sonar",OFFHAND_ORDNANCE,["XiaobzhaNanMod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+	}
+}
+
+//检测是否携带回火和能量盗取，有就NTR,haha
+void function Find_Tempered_Plating_mod( entity player, entity titan )
+{
+	entity soul = player.GetTitanSoul();
+	TitanLoadoutDef loadout = soul.soul.titanLoadout
+	if ( SoulHasPassive( soul, ePassives.PAS_SCORCH_SELFDMG ) && ( IsAlive ( player ) ) )
+	{
+		TakePassive( soul, ePassives.PAS_SCORCH_SELFDMG )
+		NSSendInfoMessageToPlayer(player, "你在做梦,伙计")
+	}
+	if ( SoulHasPassive( soul, ePassives.PAS_VANGUARD_COREMETER ) && ( IsAlive ( player ) ) )
+	{
+		TakePassive( soul, ePassives.PAS_VANGUARD_COREMETER )
+		NSSendInfoMessageToPlayer(player, "你在做梦,伙计")
+	}
+}
+
+void function TFind_Tempered_Plating_mod( entity titan, TitanLoadoutDef loadout )
+{
+	Find_Tempered_Plating_mod( titan, titan )
+}
+

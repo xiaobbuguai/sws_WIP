@@ -1,0 +1,7 @@
+WeaponData
+{
+	MP_BASE
+	{
+		"fire_rate"   									"1000"
+	}
+}

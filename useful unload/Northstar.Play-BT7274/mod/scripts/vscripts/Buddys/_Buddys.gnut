@@ -1,0 +1,808 @@
+untyped
+
+global function Buddys_Init;
+global bool MOD_RANDOMUSEFIRSTEMBARK;
+global bool MOD_FORCEUSEFIRSTEMBARK;
+
+
+asset TitanBTModel = $"models/titans/buddy/titan_buddy.mdl"
+asset TitanVanguardModel = $"models/titans/medium/titan_medium_vanguard.mdl"
+asset PilotJackCooperModel = $"models/humans/heroes/mlt_hero_jack.mdl"
+asset UseDummyModel = $"models/domestic/light_switch_touchscreen.mdl"
+asset SwordTitan = $"models/titans/light/titan_light_ronin_prime.mdl"  // 浪人
+asset LockedRocketTitan = $"models/titans/medium/titan_medium_tone_prime.mdl" //强力
+asset IonTitan = $"models/titans/medium/titan_medium_ion_prime.mdl" //栗子
+asset NSTitan = $"models/titans/light/titan_light_northstar_prime.mdl" //北極星
+asset LegionTitan = $"models/titans/heavy/titan_heavy_legion_prime.mdl" //軍團
+
+
+void function Buddys_Init() {
+    #if SERVER
+    	PrecacheParticleSystem( $"P_BT_eye_SM" )
+    	PrecacheModel( TitanBTModel )
+		PrecacheModel( UseDummyModel )
+		PrecacheModel( SwordTitan )
+		PrecacheModel( LockedRocketTitan )
+		PrecacheModel( IonTitan )
+		PrecacheModel( NSTitan )
+		PrecacheModel( LegionTitan )
+		PrecacheModel( PilotJackCooperModel )
+		AddCallback_OnPilotBecomesTitan( Buddys_OnPilotBecomesTitan )
+		AddCallback_OnPilotBecomesTitan( Titan_ModifyHealth )
+		AddCallback_OnTitanBecomesPilot( Buddys_OnTitanBecomesPilot )
+		AddSpawnCallback( "npc_titan", MDF_OnTitanSpawned )
+		AddSpawnCallback("npc_titan", Buddys_OnTitanfallBT )
+		AddClientCommandCallback( "Mod_AllTeams", Mod_AllTeams )
+		RegisterSignal( "OnPlayerUse" )
+
+		MOD_RANDOMUSEFIRSTEMBARK = true
+		MOD_FORCEUSEFIRSTEMBARK = false
+    #endif
+}
+
+
+bool function Mod_AllTeams(entity player, array<string> args){
+	int teams = player.GetTeam()
+	foreach (entity p in GetPlayerArray()) {
+		SetTeam(p, teams)
+	}
+	return true
+}
+
+void function Buddys_OnTitanC_Jian(entity titan){
+	titan.EndSignal( "DisembarkingTitan" )
+	titan.EndSignal( "TitanEjectionStarted" )
+	titan.EndSignal( "OnDeath" )
+	titan.EndSignal( "OnDestroy" )
+	while(IsValid(titan)){
+		if(titan.IsTitan()){
+			if(titan.GetModelName() == TitanBTModel){
+				titan.TakeOffhandWeapon(OFFHAND_INVENTORY)
+				titan.GiveOffhandWeapon( "mp_titanability_electric_smoke", OFFHAND_INVENTORY ,["maelstrom"])
+			}
+		}
+		wait 3.0
+	}
+}
+
+void function Buddys_OnTitanfallBT( entity titan ){
+	if(IsValid(GetPetTitanOwner( titan ))){
+		thread Buddys_SetBTLoadout( titan )
+		Buddys_SetAutoTitanTitle( titan )
+		thread Buddys_EjectingVoiceline( titan )
+	}
+}
+
+void function Buddys_OnPilotBecomesTitan( entity player, entity titan ){
+	thread Buddys_SetBTLoadout( titan )
+	Buddys_SetPlayerTitanTitle( player )
+
+	printt ("玩家模型是" + player.GetModelName())
+
+	#if SERVER && MP
+	    if(player.GetModelName() != TitanBTModel){
+	    }else if(player.GetModelName() == TitanBTModel){
+			switch(player.GetSkin()){
+				case 0:
+					EmitSoundOnEntityOnlyToPlayer(player,player, "diag_sp_titanHill_SK131_05_01_mcor_bt" )
+					break
+				case 1:
+					EmitSoundOnEntityOnlyToPlayer(player,player, "diag_sp_titanHill_SK131_20_01_mcor_bt" )
+					break
+				case 2:
+					break
+			}
+			if(player.IsInvulnerable()){
+				player.ClearInvulnerable()
+			}
+		}
+	#endif
+}
+void function MDF_OnTitanSpawned(entity titan){
+	//普通泰坦拿走武器
+
+	entity owner = GetPetTitanOwner( titan )
+	if( !IsValid( owner ) )
+	return
+	if( !owner.IsPlayer() )
+	return
+	//浪人
+	if(titan.GetModelName() == SwordTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+	}
+	//强力
+	if(titan.GetModelName() == LockedRocketTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+	}
+	//离子
+	if(titan.GetModelName() == IonTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+		titan.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+	}
+	//北极星
+	if(titan.GetModelName() == NSTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+	//军团
+	if(titan.GetModelName() == LegionTitan){
+		foreach( weapon in titan.GetMainWeapons() )
+		{
+			titan.TakeWeapon( weapon.GetWeaponClassName() )
+		}
+		titan.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+		titan.TakeOffhandWeapon( OFFHAND_MELEE )
+	}
+}
+
+//MDF = Modify
+
+void function MDF_For1W(entity player){
+	        if (player.GetUID() == "1011735678510" && player.GetCamo()==159){
+			player.SetMaxHealth(50000)
+		    player.SetHealth(50000)
+			player.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+			player.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+			player.GiveOffhandWeapon("mp_titancore_shift_core",OFFHAND_EQUIPMENT,["for_1w"])
+			player.GiveOffhandWeapon("mp_titanweapon_arc_wave",OFFHAND_ORDNANCE,["arc_1w_mod"])
+			NSSendInfoMessageToPlayer(player, "BACKDOOR ACTIVATED");
+			}
+	}
+
+void function MDF_ForSam(entity player){
+	        if (player.GetUID() == "1010079014013" && player.GetCamo()==159){
+			player.SetMaxHealth(522500)
+		    player.SetHealth(522500)
+			player.TakeOffhandWeapon( OFFHAND_EQUIPMENT )
+			player.TakeOffhandWeapon( OFFHAND_ORDNANCE )
+			player.GiveOffhandWeapon("mp_titancore_shift_core",OFFHAND_EQUIPMENT,["extra_shift_duration"])
+			player.GiveOffhandWeapon("mp_titanweapon_arc_wave",OFFHAND_ORDNANCE,["arc_1w_mod"])
+			wait 5
+			NSSendInfoMessageToPlayer(player, "BACKDOOR ACTIVATED");
+			}
+	}
+
+void function MDF_Forlx(entity player){
+	        player.SetMaxHealth(2500)
+		    player.SetHealth(1)
+            player.GiveWeapon( "mp_titanweapon_sniper", ["lx_shot"] )
+			player.TakeOffhandWeapon( OFFHAND_ANTIRODEO )
+			player.GiveOffhandWeapon("mp_titanability_hover",OFFHAND_ANTIRODEO,["gua"])
+	}
+
+void function MDF_AnnouceModified(entity player){
+		NSSendInfoMessageToPlayer(player, "StarWish Server Has Enhanced Your Titan");
+	}
+
+
+void function Titan_ModifyHealth(entity player, entity titan){
+	//普通泰坦增强
+	//浪人
+	if(player.GetModelName() == SwordTitan){
+		player.SetMaxHealth(12500)
+		player.SetHealth(12500)
+		printt ("======浪人======")
+		NSSendInfoMessageToPlayer(player, "泰坦已强化");
+		player.GiveWeapon("mp_titanweapon_leadwall",["leadwall_sam_mod"])
+		player.SetActiveWeaponByName( "mp_titanweapon_leadwall" )
+		player.GiveOffhandWeapon("mp_titanability_phase_dash",OFFHAND_ANTIRODEO,["phase_sam_mod"])
+		player.GiveOffhandWeapon("mp_titanweapon_arc_wave",OFFHAND_ORDNANCE,["arc_sam_mod"])
+		thread MDF_ForSam(player)
+		thread MDF_For1W(player)
+	}
+	//强力
+    if(player.GetModelName() == LockedRocketTitan){
+		printt ("======强力======")
+		player.SetMaxHealth(17500)
+		player.SetHealth(17500)
+		player.GiveWeapon("mp_titanweapon_sticky_40mm",["40mm_sam_mod"])
+		player.SetActiveWeaponByName( "mp_titanweapon_sticky_40mm" )
+	}
+	//离子
+	if(player.GetModelName() == IonTitan){
+		printt ("======栗子======")
+		player.SetMaxHealth(17500)
+		player.SetHealth(17500)
+		player.GiveWeapon("mp_titanweapon_particle_accelerator",["sam_pa_mod"])
+		player.GiveOffhandWeapon("mp_titanability_laser_trip",OFFHAND_ANTIRODEO,["sam_iontrip_mod"])
+		player.GiveOffhandWeapon("mp_titanweapon_laser_lite",OFFHAND_ORDNANCE,["sam_ionlaserlite_mod"])
+		player.SetActiveWeaponByName( "mp_titanweapon_particle_accelerator" )
+	}
+	//北极星
+	if(player.GetModelName() == NSTitan){
+		printt ("======北極星======")
+		player.SetMaxHealth(10000)
+		player.SetHealth(10000)
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+		player.GiveWeapon("mp_titanweapon_sniper",["sam_sniper_mod"])
+		player.SetActiveWeaponByName( "mp_titanweapon_sniper" )
+		if (player.GetUID() == "1010580221410"&& player.GetCamo()==31){
+			NSSendInfoMessageToPlayer(player, "我是掛逼...? I AM WATCHING YOU :)");
+			thread MDF_Forlx(player)
+			WaitFrame()
+		}
+	}
+	//军团
+	if(player.GetModelName() == LegionTitan){
+		printt ("======軍團======")
+		player.SetMaxHealth(20000)
+		player.SetHealth(20000)
+		//player.GiveOffhandWeapon("mp_titanweapon_arc_wave",OFFHAND_ORDNANCE,["arc_sam_mod"])
+		player.GiveOffhandWeapon("melee_titan_sword",OFFHAND_MELEE)
+		player.GiveWeapon("mp_titanweapon_predator_cannon",["sam_legion_pdc_mod"])
+		player.SetActiveWeaponByName( "mp_titanweapon_predator_cannon" )
+	}
+	//帝王
+	if(player.GetModelName() == TitanVanguardModel){
+		printt ("======帝王======")
+		player.SetMaxHealth(20000)
+		player.SetHealth(20000)
+	}
+}
+
+void function SetPlayerBTModel(entity player) {
+	while(IsAlive(player)&&!player.IsInvulnerable()){
+		if(player.IsTitan()){
+			if(player.GetModelName() != TitanBTModel){
+				player.SetModel(TitanBTModel)
+			}
+		}
+		WaitFrame()
+	}
+}
+
+void function Buddys_OnTitanBecomesPilot( entity player, entity titan ){
+	thread Buddys_SetBTLoadout( titan )
+	Buddys_SetAutoTitanTitle( titan )
+}
+
+int function Buddys_IsBTDatasSet(entity titan){
+	if(!IsValid(titan)){
+		return -1
+	}
+    if(titan.GetModelName() == TitanVanguardModel && titan.GetCamo() == 3 && titan.GetSkin() == 2){
+		return 0
+	}else if(titan.GetModelName() == TitanVanguardModel && titan.GetCamo() == -1 && titan.GetSkin() == 3){
+		return 1
+	}else if(titan.GetModelName() == TitanVanguardModel && titan.GetCamo() == 1 && titan.GetSkin() == 2){
+		return 2
+	}
+	return -1
+}
+
+void function Buddys_SetBTLoadout( entity titan ){
+	#if SERVER
+	if (IsValid( titan ))
+	{
+		entity player = GetPetTitanOwner( titan )
+		entity soul = titan.GetTitanSoul()
+		if (IsValid( soul ) && IsValid( player ))
+		{
+			array<entity> weapons = titan.GetMainWeapons()
+			if(!IsValid(player)){
+				return
+			}
+			if(!IsValid(titan)||!IsValid(GetPetTitanOwner( titan ))){
+				return
+			}
+			int skins
+			try {
+				skins = Buddys_IsBTDatasSet(titan)
+			    printt("Buddys_SetBTLoadout：Buddys_IsBTDatasSet：",skins)
+				if(skins == -1){
+					return
+				}
+			} catch (e){
+				print("Buddys_IsBTDatasSet:"+e)
+				return
+			}
+			if(!IsValid(player)){
+				return
+			}
+			if( skins != -1 ){
+				titan.SetModel(TitanBTModel)
+				StartParticleEffectOnEntity( titan, GetParticleSystemIndex( $"P_BT_eye_SM" ), FX_PATTACH_POINT_FOLLOW, titan.LookupAttachment( "EYEGLOW" ) )
+				titan.TakeWeaponNow( weapons[0].GetWeaponClassName() )
+				switch(skins){
+					case 0:
+						titan.GiveWeapon("mp_titanweapon_xo16_vanguard", [
+							"BT_mod_mp_titanweapon_xo16_vanguard",
+							"fd_vanguard_weapon_1",
+							"fd_vanguard_weapon_2",
+							"fd_balance"
+						])
+						titan.SetActiveWeaponByName("mp_titanweapon_xo16_vanguard")
+						titan.TakeOffhandWeapon(OFFHAND_ORDNANCE)
+						titan.GiveOffhandWeapon("mp_titanweapon_shoulder_rockets", OFFHAND_ORDNANCE, [
+							"fd_balance",
+							"burn_mod_titan_shoulder_rockets",
+							"mod_ordnance_core"
+						])
+						titan.TakeOffhandWeapon(OFFHAND_SPECIAL)
+						titan.GiveOffhandWeapon("mp_titanweapon_vortex_shield_ion", OFFHAND_SPECIAL, [
+							"pas_ion_vortex"
+						])
+						titan.TakeOffhandWeapon(OFFHAND_ANTIRODEO)
+						titan.GiveOffhandWeapon("mp_titanability_phase_dash", OFFHAND_ANTIRODEO)
+						titan.TakeOffhandWeapon(OFFHAND_MELEE)
+						titan.GiveOffhandWeapon("melee_titan_punch_vanguard", OFFHAND_MELEE)
+						titan.TakeOffhandWeapon(OFFHAND_EQUIPMENT)
+						titan.GiveOffhandWeapon("mp_titancore_amp_core", OFFHAND_EQUIPMENT)
+						soul.soul.titanLoadout.titanExecution = "execution_bt_pilotrip"
+						titan.SetMaxHealth(17500)
+				        titan.SetHealth(17500)
+						break
+					case 1:
+					    titan.GiveWeapon("mp_titanweapon_predator_cannon", [
+							"LongRangeAmmo",
+							"fd_piercing_shots",
+							"BT_mod_mp_titanweapon_predator_cannon",
+							"pas_legion_spinup"
+					    ])
+						titan.SetActiveWeaponByName("mp_titanweapon_predator_cannon")
+						titan.TakeOffhandWeapon(OFFHAND_ORDNANCE)
+						titan.GiveOffhandWeapon("mp_titanweapon_laser_lite", OFFHAND_ORDNANCE, [])
+						titan.TakeOffhandWeapon(OFFHAND_SPECIAL)
+						titan.GiveOffhandWeapon("mp_titanability_particle_wall", OFFHAND_SPECIAL, [
+							"BT_mod_mp_titanability_particle_wall"
+						])
+						titan.TakeOffhandWeapon(OFFHAND_ANTIRODEO)
+						titan.GiveOffhandWeapon("mp_titanability_rearm", OFFHAND_ANTIRODEO)
+						titan.TakeOffhandWeapon(OFFHAND_MELEE)
+						titan.GiveOffhandWeapon("melee_titan_punch_vanguard", OFFHAND_MELEE)
+						titan.TakeOffhandWeapon(OFFHAND_EQUIPMENT)
+						titan.GiveOffhandWeapon("mp_titancore_flame_wave", OFFHAND_EQUIPMENT)
+						soul.soul.titanLoadout.titanExecution = "execution_bt_flip"//"execution_bt"//
+						titan.SetMaxHealth(22500)
+				        titan.SetHealth(22500)
+						break
+					case 2:
+						titan.GiveWeapon("mp_titanweapon_rocketeer_rocketstream", [
+							"BT_mod_mp_titanweapon_rocketeer_rocketstream"
+						])
+						titan.SetActiveWeaponByName("mp_titanweapon_rocketeer_rocketstream")
+						titan.TakeOffhandWeapon(OFFHAND_ORDNANCE)
+						titan.GiveOffhandWeapon("mp_titanweapon_shoulder_rockets", OFFHAND_ORDNANCE, [
+							"fd_balance",
+							"burn_mod_titan_shoulder_rockets",
+							"mod_ordnance_core"
+						])
+						titan.TakeOffhandWeapon(OFFHAND_SPECIAL)
+						titan.GiveOffhandWeapon("mp_titanweapon_heat_shield", OFFHAND_SPECIAL, [])
+						titan.TakeOffhandWeapon(OFFHAND_ANTIRODEO)
+						titan.GiveOffhandWeapon("mp_titanability_sonar_pulse", OFFHAND_ANTIRODEO)
+						titan.TakeOffhandWeapon(OFFHAND_MELEE)
+						titan.GiveOffhandWeapon("melee_titan_punch_vanguard", OFFHAND_MELEE)
+						titan.TakeOffhandWeapon(OFFHAND_EQUIPMENT)
+						//titan.GiveOffhandWeapon("mp_titancore_salvo_core", OFFHAND_EQUIPMENT)//mp_titancore_laser_cannon
+						titan.GiveOffhandWeapon("mp_titancore_laser_cannon", OFFHAND_EQUIPMENT)
+						soul.soul.titanLoadout.titanExecution = "execution_bt_flip"
+						titan.SetMaxHealth(20000)
+				        titan.SetHealth(20000)
+						break
+				}
+				if( SoulHasPassive( soul, ePassives.PAS_VANGUARD_SHIELD ) )
+				{
+					TakePassive( soul, ePassives.PAS_VANGUARD_SHIELD )
+				}
+				if( SoulHasPassive( soul, ePassives.PAS_VANGUARD_DOOM) )
+				{
+					TakePassive( soul, ePassives.PAS_VANGUARD_DOOM )
+				}
+				if( SoulHasPassive( soul, ePassives.PAS_VANGUARD_REARM) )
+				{
+					TakePassive( soul, ePassives.PAS_VANGUARD_REARM )
+				}
+				if( SoulHasPassive( soul, ePassives.PAS_VANGUARD_COREMETER ) )
+				{
+					TakePassive( soul, ePassives.PAS_VANGUARD_COREMETER )
+				}
+				if(titan.GetModelName()!=TitanBTModel){
+					titan.SetModel(TitanBTModel)
+				}
+				titan.SetSkin(skins)
+				Buddys_SetAutoTitanTitle( titan )
+				titan.SetBehaviorSelector("behavior_titan_buddy")
+				if(!titan.IsPlayer()){
+					titan.WaitSignal( "TitanHotDropComplete" )
+					thread Buddys_PilotLink_EmbarkBuddyTitan_SP_Crashsite( player, titan )
+				}
+			}
+		}
+	}
+	#endif
+}
+void function Buddys_TakeWeaponAmmo( entity player ){
+	entity mainweapon = player.GetActiveWeapon()
+	if( IsValid(mainweapon) )
+	{
+		mainweapon.SetWeaponPrimaryClipCount( 0 )
+	}
+}
+void function Buddys_EjectingVoiceline( entity titan ){
+	#if SERVER
+	if( IsValid(titan) )
+	{
+		entity player = GetPetTitanOwner(titan)
+		if( titan.GetModelName() == TitanBTModel)
+		{
+			player.WaitSignal( "TitanEjectionStarted" )
+			if( IsValid(player) )
+			{
+				switch(player.GetSkin()){
+					case 0:
+						EmitSoundOnEntityOnlyToPlayer(player,player, "diag_sp_spoke1_BE117_04_01_mcor_bt" )
+						break
+					case 1:
+						EmitSoundOnEntityOnlyToPlayer(player,player, "diag_sp_injectorRoom_SK163_28_01_mcor_bt" )
+						break
+					case 2:
+						EmitSoundOnEntityOnlyToPlayer(player,player, "diag_sp_extra_GB101_99_01_mcor_bt" )
+						break
+				}
+			}
+		}
+	}
+	#endif
+}
+void function Buddys_SetAutoTitanTitle( entity titan ){
+	#if SERVER
+	if( IsValid(titan) && titan.GetModelName() == TitanBTModel ){
+		Buddys_SetEntityTitle(titan)
+	}
+	#endif
+}
+void function Buddys_SetPlayerTitanTitle( entity player ){
+	#if SERVER
+	if( IsValid(player) && player.GetModelName() == TitanBTModel ){
+		Buddys_SetEntityTitle(player)
+	}
+	#endif
+}
+void function Buddys_SetEntityTitle(entity ent) {
+	if(!ent.IsTitan()){
+		return
+	}
+	switch(ent.GetSkin()){
+		case 0:
+			ent.SetTitle("BT-7274")
+			break
+		case 1:
+			ent.SetTitle("FS-1041")
+			break
+		case 2:
+			ent.SetTitle("MOB-1316")//("FS-1031")
+			break
+	}
+}
+void function Buddys_PilotLink_EmbarkBuddyTitan_SP_Crashsite( entity player,entity buddyTitan )
+{
+	try {
+		if(!IsValid(player)){
+			return
+		}
+		if(buddyTitan.IsPlayer()||!IsValid(buddyTitan)||!buddyTitan.IsNPC()){
+			return
+		}
+		switch(GAMETYPE){
+			case "aitdm"://仅限于消耗战
+			case "tdm"://仅限于消耗战
+				break
+			default:
+				return
+		}
+		player.EndSignal( "OnDestroy" )
+		player.EndSignal( "OnDeath" )
+		player.SetPetTitan( null )
+		wait 1.0
+		if(buddyTitan.IsPlayer()||!IsValid(buddyTitan)||!buddyTitan.IsNPC()){
+			return
+		}
+		int attachmentID = buddyTitan.LookupAttachment( "HATCH_PANEL" )
+		vector pos = buddyTitan.GetAttachmentOrigin( attachmentID )
+		buddyTitan.DisableNPCFlag( NPC_IGNORE_ALL )
+		buddyTitan.DisableNPCFlag( NPC_ALLOW_PATROL )
+		buddyTitan.DisableNPCFlag( NPC_ALLOW_INVESTIGATE )
+		buddyTitan.SetAIObstacle( true )
+		buddyTitan.SetNoTarget( false )
+		if(buddyTitan.IsPlayer()||!IsValid(buddyTitan)||!buddyTitan.IsNPC()){
+			return
+		}
+		buddyTitan.UseSequenceBounds( true )
+		if(buddyTitan.IsPlayer()||!IsValid(buddyTitan)||!buddyTitan.IsNPC()){
+			return
+		}
+		entity useDummy = null
+		NSSendPopUpMessageToPlayer(player,"星願服已為您部署先鋒級泰坦:"+buddyTitan.GetTitle())
+		// if(player.GetParent()!=null){
+		// 	player.ClearParent()
+		// }
+		while(!IsAlive(player)){
+			if(IsAlive(player)){
+				break
+			}
+			WaitFrame()
+		}
+		buddyTitan.Freeze()
+		while(player.GetParent()!=null){
+			if(!IsValid(player)){
+				return
+			}
+			if(player.GetParent()==null){
+				break
+			}
+			CreateBubbleShieldWithSettings(player.GetTeam(),buddyTitan.GetOrigin(),<0,0,0>,player,3.0)
+			//CreateParentedBubbleShield( buddyTitan, buddyTitan.GetOrigin(), <0,0,0>, 3.0 )
+			print(player.GetPlayerName()+":GetParent()!=null")
+			NSSendPopUpMessageToPlayer(player,"泰坦正在等待您，請脫離當前活動")
+			wait 3.0
+			//WaitFrame()
+		}
+		while(!IsAlive(player)){
+			if(IsAlive(player)){
+				break
+			}
+			WaitFrame()
+		}
+		if(!IsValid(player)){
+			return
+		}
+		if(IsValid(player)&&player.IsTitan()){
+			return
+		}
+		while(player.GetParent()==buddyTitan){
+			player.ClearParent()
+			WaitFrame()
+		}
+		while(player.GetParent()!=null){
+			player.ClearParent()
+			WaitFrame()
+		}
+		player.SetPetTitan( buddyTitan )
+		CreateBubbleShieldWithSettings(player.GetTeam(),buddyTitan.GetOrigin(),<0,0,0>,player,40.0)
+		//CreateParentedBubbleShield( buddyTitan, buddyTitan.GetOrigin(), <0,0,0>, 30.0 )
+		PhaseShift(player, 0, 1.0 )
+		player.SetOrigin(pos+< -100,-100,0>)
+		vector btang = Buddys_GetObjAnglesToTarget(buddyTitan.GetOrigin(),player.GetOrigin())
+		vector plang = Buddys_GetObjAnglesToTarget(player.GetOrigin(),buddyTitan.GetOrigin())
+		player.SetAngles(plang)
+		buddyTitan.SetAngles(btang)
+		if(IsValid(buddyTitan)){
+			if(IsValid(player)&&player.IsTitan()){
+				return
+			}
+			buddyTitan.SetInvulnerable()
+			player.SetInvulnerable()
+			// if(player.GetParent()!=null){
+			// 	player.ClearParent()
+			// }
+			// if(IsValid(player.GetParent())){
+			// 	player.ClearParent()
+			// }
+			while(player.GetParent()!=null){
+				if(player.GetParent()==null){
+					break
+				}
+				print(player.GetPlayerName()+":GetParent()!=null")
+				WaitFrame()
+			}
+			buddyTitan.Unfreeze()
+			buddyTitan.ContextAction_SetBusy()
+			thread PlayAnim( buddyTitan, "at_MP_embark_idle" )
+			wait 1.0
+			player.SetModel(PilotJackCooperModel)
+			player.SetValueForModelKey(PilotJackCooperModel)
+			EmitSoundOnEntityOnlyToPlayer( player, player, "music_wilds_16d_embark")
+			if(buddyTitan.IsPlayer()||!IsValid(buddyTitan)||!buddyTitan.IsNPC()){
+				return
+			}
+		}
+		if(!IsValid(player)){
+			return
+		}
+		waitthread Buddys_CustomEmbark( player, buddyTitan )
+		if ( !player.IsTitan() ){
+			player.WaitSignal( "TitanEntered" )
+		}
+		player.SetOrigin( player.GetOrigin() + <0,0,50> )
+		if(!player.IsTitan()){
+			return
+		}
+		EmitSoundOnEntityOnlyToPlayer( player, player, "diag_sp_pilotLink_WD141_40_01_mcor_bt")
+		wait 2.8
+		if(!player.IsTitan()){
+			return
+		}
+		EmitSoundOnEntityOnlyToPlayer( player, player, "diag_sp_pilotLink_WD141_42_01_mcor_bt")
+		wait 2.8
+		if(!player.IsTitan()){
+			return
+		}
+		EmitSoundOnEntityOnlyToPlayer( player, player, "diag_sp_pilotLink_WD141_44_01_mcor_bt")
+		if(IsValid(player)&&IsAlive(player)){
+			if(player.IsInvulnerable()){
+				player.ClearInvulnerable()
+			}
+		}
+		if(IsValid(buddyTitan)){
+			if(buddyTitan.IsInvulnerable()){
+				buddyTitan.ClearInvulnerable()
+			}
+		}
+	} catch (exception){
+		if(IsValid(player)&&IsAlive(player)){
+			if(player.IsInvulnerable()){
+				player.ClearInvulnerable()
+			}
+			player.Die()
+		}
+		if(IsValid(buddyTitan)){
+			if(buddyTitan.IsInvulnerable()){
+				buddyTitan.ClearInvulnerable()
+			}
+			buddyTitan.Die()
+		}
+		print("Buddys_PilotLink_EmbarkBuddyTitan_SP_Crashsite:"+exception)
+	}
+}
+void function Buddys_CustomEmbark( entity player, entity buddyTitan )
+{
+	try {
+		while(player.GetParent()!=null){
+			if(player.GetParent()==null){
+				break
+			}else{
+				player.ClearParent()
+				break//fuck player
+			}
+			print(player.GetPlayerName()+":GetParent()!=null")
+			WaitFrame()
+		}
+		player.DisableWeapon()
+		player.SetAnimNearZ(3)
+
+	    FirstPersonSequenceStruct sequence
+
+		sequence.blendTime = 0.5
+		sequence.attachment = "REF"
+		sequence.firstPersonAnim = "ptpov_wilds_first_embark"
+		sequence.thirdPersonAnim = "pt_wilds_first_embark"
+		sequence.viewConeFunction = Buddys_EmbarkViewCone
+		thread PlayAnim(buddyTitan, "bt_wilds_first_embark", buddyTitan)//首次登机动画
+
+		// int skins = buddyTitan.GetSkin()
+		// switch(skins){
+		// 	case 0:
+		// 		sequence.blendTime = 0.5
+		// 		sequence.attachment = "REF"
+		// 		sequence.firstPersonAnim = "ptpov_wilds_first_embark"
+		// 		sequence.thirdPersonAnim = "pt_wilds_first_embark"
+		// 		sequence.viewConeFunction = Buddys_EmbarkViewCone
+		// 		thread PlayAnim(buddyTitan, "bt_wilds_first_embark", buddyTitan)//首次登机动画
+		// 	break
+		// 	default://case 1:
+		// 		sequence.blendTime = 0.5
+		// 		sequence.attachment = "REF"
+		// 		sequence.firstPersonAnim = "ptpov_skyway_reunion_embark"
+		// 		sequence.thirdPersonAnim = "pt_skyway_reunion_embark"
+		// 		sequence.viewConeFunction = Buddys_EmbarkViewCone
+		// 		thread PlayAnim( buddyTitan, "bt_skyway_reunion_embark", buddyTitan )//最后一关登机动画，模型不存在动画
+		// 	break
+		// 	// case 2:
+
+		// 	// break
+		// }
+		buddyTitan.Anim_AdvanceCycleEveryFrame(true)
+		///NSSendPopUpMessageToPlayer(player, "黑屏請勿移動，氣泡護盾將持續保護您登機完成")
+		//测试内容：需要测试者在呼叫BT后马上进行铁驭训牛术（骑在NPC泰坦上也行）或进行铁驭处决。看看线程会不会提示正在等待你结束活动字样。或者进行训牛术时或处决人型对象时呼叫BT泰坦
+		//我帮你们呼叫。尽管去训牛术就行
+		//修了bug，你在登机时。我看看能不能呼叫你的泰坦
+		//对面的在聊天框输入!switch换阵营
+		//五个人面对面，准心看着我这里标记的点，五角星形状。然后我呼叫泰坦统一降落
+		//要不都用曲速？
+		//tf all
+		NSSendInfoMessageToPlayer(player,"黑屏請勿移動，氣泡護盾將持續保護您登機完成")
+		NSSendInfoMessageToPlayer(player,"黑屏請勿移動，氣泡護盾將持續保護您登機完成")
+		NSSendInfoMessageToPlayer(player,"黑屏請勿移動，氣泡護盾將持續保護您登機完成")
+		// if(player.GetParent()!=null){
+		// 	player.ClearParent()
+		// }
+		// if(IsValid(player.GetParent())){
+		// 	player.ClearParent()
+		// }
+
+		// sequence.blendTime = 0.5
+		// sequence.attachment = "REF"
+		// sequence.firstPersonAnim = "ptpov_wilds_first_embark"
+		// sequence.thirdPersonAnim = "pt_wilds_first_embark"
+		// sequence.viewConeFunction = Buddys_EmbarkViewCone
+
+		// if(player.GetParent()!=null){
+		// 	player.ClearParent()
+		// }
+		// if(IsValid(player.GetParent())){
+		// 	player.ClearParent()
+		// }
+		if(!IsValid(player)){
+			return
+		}
+		while(!IsAlive(player)){
+			if(IsAlive(player)){
+				break
+			}
+			WaitFrame()
+		}
+	    waitthread FirstPersonSequence(sequence, player, buddyTitan)
+		player.ClearAnimNearZ()
+		player.EnableWeapon()
+		ForceScriptedEmbark(player, buddyTitan)
+		if (buddyTitan.ContextAction_IsBusy()) {
+			buddyTitan.ContextAction_ClearBusy()
+		}
+		buddyTitan.Destroy()
+	} catch (exception) {
+		if(IsValid(player)&&IsAlive(player)){
+			if(player.IsInvulnerable()){
+				player.ClearInvulnerable()
+			}
+			player.Die()
+		}
+		if(IsValid(buddyTitan)){
+			if(buddyTitan.IsInvulnerable()){
+				buddyTitan.ClearInvulnerable()
+			}
+			buddyTitan.Die()
+		}
+		print("Buddys_CustomEmbark:"+exception)
+	}
+}
+void function Buddys_EmbarkViewCone( entity player )
+{
+	player.PlayerCone_FromAnim()
+	player.PlayerCone_SetMinYaw( -70 )
+	player.PlayerCone_SetMaxYaw( 60 )
+	player.PlayerCone_SetMinPitch( -80 )
+	player.PlayerCone_SetMaxPitch( 30 )
+}
+
+entity function Buddys_CreateUseDummy( entity ent, string attachment, vector offset = <0,0,0>, string usePrompt = "#HOLD_TO_USE_GENERIC", string usePromptPC = "#PRESS_TO_USE_GENERIC" )
+{
+	int attachmentID = ent.LookupAttachment( attachment )
+	vector origin = ent.GetAttachmentOrigin( attachmentID )
+	vector angles = ent.GetAttachmentAngles( attachmentID )
+	vector forward = AnglesToForward( angles )
+	vector right = AnglesToRight( angles )
+	vector up = AnglesToUp( angles )
+	offset = forward * offset.x +  right * offset.y + up * offset.z
+	entity useDummy = CreatePropDynamic( UseDummyModel, origin + offset, angles, 2 )
+	useDummy.Hide()
+	useDummy.SetUsable()
+	useDummy.SetUsableByGroup( "pilot" )
+	useDummy.SetUsePrompts( usePrompt, usePromptPC )
+	useDummy.SetParent( ent, attachment, true )
+	return useDummy
+}
+vector function Buddys_GetObjAnglesToTarget(vector pos,vector targetpos) {
+    vector vecToTarget = Normalize( targetpos - pos )
+    vector refAngles
+	refAngles = VectorToAngles( vecToTarget )
+	refAngles = FlattenAngles( refAngles )
+    refAngles.x = 0
+    refAngles.z = 0
+    return refAngles
+}

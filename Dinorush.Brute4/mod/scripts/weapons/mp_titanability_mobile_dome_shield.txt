@@ -1,0 +1,85 @@
+WeaponData
+{
+	// General
+	"printname"   									"#WPN_TITAN_MOBILE_DOME"
+	"shortprintname"  								"#WPN_TITAN_MOBILE_DOME_SHORT"
+	"description" 									"#WPN_TITAN_MOBILE_DOME_DESC"
+	"longdesc"										"#WPN_TITAN_MOBILE_DOME_LONGDESC"
+
+
+//	"menu_icon"										"ui/menu/items/passive_icons/longer_bubble"
+//	"hud_icon"										"ui/menu/items/passive_icons/longer_bubble"
+
+	"menu_icon"										"brute/menu/dome_shield"
+	"hud_icon"										"brute/hud/dome_shield"
+
+	"weaponClass" 									"titan"
+	"weaponType"									"defense"
+	"fire_mode"   									"offhand_instant"
+
+	"OnWeaponPrimaryAttack"							"OnWeaponPrimaryAttack_mobile_dome_shield"
+	"OnWeaponNpcPrimaryAttack"						"OnWeaponNpcPrimaryAttack_mobile_dome_shield"
+
+	"projectilemodel"								"models/weapons/grenades/m20_f_grenade.mdl"
+
+	"damage_type" 									"none"
+
+	// Sound
+	"fire_sound_1_player_1p"						"ShieldWall_Deploy"
+	"fire_sound_1_player_3p"						"ShieldWall_Deploy"
+	"sound_dryfire"									"titan_dryfire"
+	"sound_weapon_ready"							"HUD_TitanDefenseAbility_replenished_1P"
+
+	// Ammo
+	"cooldown_type"                                 "ammo_instant"
+	"ammo_clip_size"   								"120"
+	"ammo_default_total"							"120"
+	"ammo_display"									"bar"
+	"ammo_min_to_fire"								"120"
+	"ammo_per_shot"									"120"
+	"ammo_stockpile_max"							"120"
+	"ammo_drains_to_empty_on_fire"					"1"
+	//"ammo_no_remove_from_clip"						"1"
+
+	//Regen Ammo
+	"regen_ammo_refill_rate"						"20"
+	"regen_ammo_refill_start_delay"					"0.0"
+
+	"reload_enabled"								"0"
+
+	// Behavior
+	"fire_rate"   									"1.0"
+	"fire_duration"                                 "6.0"
+
+	"fire_rumble"									"rumble_titan_ordnanceeject"
+
+	"breaks_cloak"									"0"
+
+	// NPC
+	"npc_use_min_damage"							"700"
+	"npc_use_max_damage"							"1400"
+	"npc_use_min_projectile_damage"					"300"
+	"npc_titan_ability"								"WTA_WALL"
+
+	"npc_rest_time_between_bursts_min"				"15"
+	"npc_rest_time_between_bursts_max"				"20"
+
+	// NPC
+	"proficiency_poor_additional_rest"				"15"
+	"proficiency_average_additional_rest"			"8"
+	"proficiency_good_additional_rest"				"4"
+	"proficiency_very_good_additional_rest"			"2"
+
+	Mods
+	{
+		molting_dome
+		{
+
+		}
+
+		agile_frame
+		{
+			
+		}
+	}
+}

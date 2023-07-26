@@ -1,0 +1,82 @@
+{
+	"Name" : "cat_or_not's Utils",
+	"Description" : "some stuff used by some of my mods",
+	"Version": "1.2.4",
+	"LoadPriority": 1,
+	"Scripts": [
+		{
+			"Path": "_map_callbacks.gnut",
+			"RunOn": "SERVER",
+			"ServerCallback": {
+				"After": "StartMapCallBacks"
+			}
+		},
+		{
+			"Path": "_cat_chatcommands.gnut",
+			"RunOn": "SERVER",
+			"ServerCallback": {
+				"After": "Init_ChatCommands"
+			}
+		},
+		{
+			"Path": "_button_tracking.nut",
+			"RunOn": "SERVER"
+		},
+		// ships and voper
+		{
+			"Path": "c2c/sp_weapon_viperbossrockets_s2s.nut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "SPWeaponViperBossRockets_S2S_Init"
+			}
+		},
+		{
+			"Path": "c2c/sp_weapon_mega_turret_s2s_ion.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "c2c/sp_s2s_common.nut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "S2S_CommonInit"
+			}
+		},
+		{
+			"Path": "c2c/sp_s2s_flight.nut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "S2S_FlightInit"
+			}
+		},
+		{
+			"Path": "c2c/mo_utility.nut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "MoUtilityInit"
+			}
+		},
+		{
+			"Path": "c2c/sp_s2s_widow.nut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "S2S_WidowInit"
+			}
+		},
+		{
+			"Path": "c2c/sp_s2s_fsm.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "c2c/sp_s2s_dropship.nut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "S2S_DropshipInit"
+			}
+		},
+		{
+			"Path": "c2c/sp_s2s_capships.nut",
+			"RunOn": "SERVER && MP"
+		}
+	]
+}
+

@@ -1,0 +1,23 @@
+WeaponData
+{
+    Mods
+    {
+        catornot
+        {
+            "smart_ammo_lock_type"						"large"
+            "smart_ammo_targeting_time_min"				"0"
+            "smart_ammo_targeting_time_max"				"0"
+            "reload_time"                               "0.1"
+            "smart_ammo_targeting_time_min"				"0"
+            "smart_ammo_targeting_time_max"				"0"
+            "ammo_clip_size"                            "10"
+            "fire_rate"                                 "10"
+            "explosion_damages_owner"						"1"
+
+            "ammo_default_total"							"3"
+            "ammo_stockpile_max"							"100"
+            "ammo_no_remove_from_stockpile"					"0"
+            "ammo_min_to_fire"								"1"          
+        }
+    }
+}

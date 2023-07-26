@@ -1,0 +1,132 @@
+{
+	"Name" : "cat_or_not.maps+",
+	"Description" : "makes maps more interactable",
+	"Version": "1.12.0",
+	"LoadPriority": 3,
+	"ConVars": [
+		{"Name": "Nessy",
+			"DefaultValue": "000000000000000000"
+		},
+		{"Name": "train_speed",
+			"DefaultValue": "500"
+		},
+		{"Name": "dropships_enabled",
+			"DefaultValue": "1"
+		},
+		{"Name": "disabled_elements",
+			"DefaultValue": "null null"
+		}
+		// not a lot of stuff to disable rn
+		// the following are some args that disable stuff
+		// voper
+		// voper2
+		// train_angel
+		// sarah
+		// ash
+		// box_test
+		// past_pilots
+		// cranes
+		// dropship_station
+		// gunship_station
+		// kraber_grunt
+		// missions_from_sarah
+		// blisk
+		// random_teleport
+		// race
+		// ziplines
+		// sarah_nessie
+		// phase_teleporter
+		// ex: disabled_elements voper sarah
+		// that will disable voper and sarah's coffee shop D:
+
+		// you can't disable the gambler >:(
+	],
+	"Scripts": [
+		{
+			"Path": "_objects_utility.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/glitch.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/relic.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/blackwater.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/eden.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/wargames.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/forwardbase.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/angel_city.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/drydock.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/exoplanet.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/colony.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/Box.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/boomtown.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "object_maps/homestead.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "voper_battle.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "cat.s_room.nut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+			"Path": "_objects_init.nut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"Before": "map_objects_init"
+			}
+		},
+		{
+			"Path": "dropship_spawning.nut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "Init_DropShipSpawning"
+			}
+		},
+		{
+			"Path": "recordings.nut",
+			"RunOn": "SERVER && MP"
+		}
+	],
+	"Dependencies": {
+		"DROPSHIP_MOD": "cat_or_not.DropshipDrivable"
+	}
+}
+

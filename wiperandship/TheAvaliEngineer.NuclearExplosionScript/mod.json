@@ -1,0 +1,14 @@
+{
+	"Name" : "TheAvaliEngineer.NuclearExplosionScript",
+	"Description" : "Mod that allows projectiles to trigger nuclear explosions.",
+	"Version": "1.2.2",
+
+	"LoadPriority": 1,
+
+    "Scripts": [
+		{
+			"Path": "nuclear_explosion.nut",
+			"RunOn": "SERVER && MP"
+		}
+	]
+}

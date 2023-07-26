@@ -1,0 +1,82 @@
+{
+	"Name": "Dinorush.Brute4",
+	"Description": "Implements the Brute4 titan based on cut content.\nCredits: GalacticMoblin & Hurb - Custom UI Elements",
+	"LoadPriority": 2,
+	"RequiredOnClient": true,
+	"Version": "1.8.6",
+
+	"Scripts": [
+		{
+			"Path": "weapons/mp_titanweapon_brute4_quad_rocket.nut",
+			"RunOn": "( CLIENT || SERVER ) && MP"
+		},
+		{
+			"Path": "weapons/mp_projectile_titanweapon_brute4_quad_rocket.nut",
+			"RunOn": "( CLIENT || SERVER ) && MP"
+		},
+		{
+			"Path": "weapons/mp_titanability_cluster_payload.nut",
+			"RunOn": "( CLIENT || SERVER ) && MP"
+		},
+		{
+			"Path": "weapons/mp_titanweapon_grenade_volley.nut",
+			"RunOn": "( CLIENT || SERVER ) && MP"
+		},
+		{
+			"Path": "weapons/mp_titancore_barrage_core.nut",
+			"RunOn": "( CLIENT || SERVER ) && MP"
+		},
+		{
+			"Path": "weapons/mp_titanability_mobile_dome_shield.nut",
+			"RunOn": "( CLIENT || SERVER ) && MP"
+		},
+		{
+			"Path": "weapons/mp_titanweapon_barrage_core_launcher.nut",
+			"RunOn": "( CLIENT || SERVER ) && MP"
+		},
+		{
+			"Path": "weapons/mobile_dome_shield.nut",
+			"RunOn": "( CLIENT || SERVER ) && MP"
+		},
+		{
+			"Path": "sh_brute4util.nut",
+			"RunOn": "( CLIENT || SERVER ) && MP",
+			"ClientCallback": {
+				"After": "Brute4_Init"
+			},
+			"ServerCallback": {
+				"After": "Brute4_Init"
+			}
+		},
+		{
+			"Path": "TitanFrameworkInitBrute.nut",
+			"RunOn": "CLIENT || UI || SERVER",
+			"ServerCallback": {
+                "After": "Brute4_UIInit"
+            },
+
+            "ClientCallback": {
+                "After": "Brute4_UIInit"
+            },
+            "UICallback": {
+                "After": "Brute4_UIInit"
+            }
+		},
+		{
+			"Path": "titanframework_dependency.nut",
+			"RunOn": "UI",
+            "UICallback": {
+                "After": "Brute4_CheckDependencies"
+            }
+		}
+	],
+
+	"Localisation": [
+		"resource/brute4_localization_%language%.txt"
+	],
+
+	"Dependencies":
+    {
+      "BRUTE4_HAS_TITANFRAMEWORK": "Peepee.TitanFramework"
+    }
+}

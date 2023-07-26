@@ -1,0 +1,62 @@
+WeaponData
+{
+	// General
+	"printname"   									"#WPN_TITAN_CLUSTER_PAYLOAD"
+	"shortprintname"  								"#WPN_TITAN_CLUSTER_PAYLOAD_SHORT"
+	"description" 									"#WPN_TITAN_CLUSTER_PAYLOAD_DESC"
+	"longdesc"										"#WPN_TITAN_CLUSTER_PAYLOAD_LONGDESC"
+
+	"menu_icon"										"brute/menu/rocket_swap"
+	"hud_icon"										"brute/hud/rocket_swap"
+
+	"weaponClass" 									"titan"
+	//"weaponType"									"tactical"
+	"fire_mode"   									"offhand_instant"
+
+	"OnWeaponPrimaryAttack"							"OnWeaponPrimaryAttack_cluster_payload"
+	"OnWeaponNpcPrimaryAttack"						"OnWeaponNpcPrimaryAttack_cluster_payload"
+
+	"damage_type" 									"none"
+
+	// Sound
+	"sound_dryfire"									"titan_dryfire"
+
+	// NPC
+	"npc_min_range"   								"500"
+	"npc_max_range"   								"3000"
+	"npc_min_burst"   								"1"
+	"npc_max_burst"   								"1"
+
+	"npc_rest_time_between_bursts_min"				"15"
+	"npc_rest_time_between_bursts_max"				"20"
+
+	// Ammo
+	"ammo_display"									"bar"
+	"ammo_stockpile_max"							"150"
+	"ammo_clip_size"   								"150"
+	"ammo_default_total"							"150"
+	"ammo_min_to_fire"                              "150"
+	"ammo_per_shot"                                 "150"
+	"regen_ammo_refill_rate"						"10.0"
+	"regen_ammo_refill_start_delay"					"0.0"
+	//"cooldown_type"                                 "ammo_instant"
+	"ammo_no_remove_from_clip"						"0"
+
+	"reload_enabled"								"0"
+	"fire_rate"   									"1000.0"
+
+	Mods
+	{
+		no_regen
+		{
+			"regen_ammo_refill_rate"						"*0.0"
+		}
+
+		explosive_reserves
+		{
+			"ammo_min_to_fire"                              "*0.5"
+			"ammo_per_shot"                                 "*0.5"
+			"regen_ammo_refill_rate"						"*0.5"
+		}
+	}
+}

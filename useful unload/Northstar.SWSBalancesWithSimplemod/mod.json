@@ -1,0 +1,6 @@
+{
+	"Name" : "Northstar.SWSBalancesWithSimplemod",
+	"Description" : "balancesmodforstarwishsever.",
+	"Version": "1.0.0",
+	"LoadPriority": 4,
+}

@@ -1,0 +1,15 @@
+{
+	"Name" : "Northstar.Play-BT7274",
+	"Description" : "Northstar.Play-BT7274，BT7274為三色林塗裝，FS1041為帝王邊境塗裝，FS1031為邊境樹林塗裝。同時可在多人遊戲中使用傑克庫博。服務器與私人遊戲可使用傑克庫博與BT7274、FS1041、FS1031（需裝備對應的塗裝），作者：HaiGeMaster。",
+	"Version": "1.0.3",
+	"LoadPriority": 2,
+	"Scripts": [
+		{
+			"Path": "/Buddys/_Buddys.gnut",
+			"RunOn": "SERVER && MP",
+            "ServerCallback": {
+                "After": "Buddys_Init"
+            }
+		}
+	]
+}

@@ -1,0 +1,289 @@
+WeaponData
+{
+	// General
+	"printname"   									"#WPN_TITAN_GRENADE_VOLLEY"
+	"description" 									"#WPN_TITAN_GRENADE_VOLLEY_DESC"
+	"shortprintname"								"#WPN_TITAN_GRENADE_VOLLEY_SHORT"
+	"longdesc"										"#WPN_TITAN_GRENADE_VOLLEY_LONGDESC"
+
+
+//	"menu_icon"										"rui/pilot_loadout/ordnance/frag_menu"
+//	"hud_icon"										"rui/pilot_loadout/ordnance/frag"
+
+	"menu_icon"										"brute/menu/grenade_launcher"
+	"hud_icon"										"brute/hud/grenade_launcher"
+
+	"weaponClass" 									"titan"
+	"weaponType"									"shoulder"
+	"fire_mode"   									"offhand"
+	"minimap_reveal_distance"						"32000"
+	"offhand_keep_primary_in_hand" 					"1"
+
+	"viewmodel"   									"models/weapons/titan_bt_rocket_pod/atpov_titan_bt_rocket_pod_right.mdl"
+
+	"OnProjectileCollision"  						"OnProjectileCollision_titanweapon_grenade_volley"
+	"OnWeaponPrimaryAttack"							"OnWeaponPrimaryAttack_titanweapon_grenade_volley"
+	"OnWeaponNpcPrimaryAttack"						"OnWeaponNpcPrimaryAttack_titanweapon_grenade_volley"
+	"OnWeaponAttemptOffhandSwitch" 					"OnWeaponAttemptOffhandSwitch_titanweapon_grenade_volley"
+
+	"aimassist_disable_hipfire"						"1"
+	"aimassist_disable_ads"							"1"
+
+	"projectile_drift_windiness"					"2"
+	"projectile_drift_intensity"					"0.4"
+	"projectile_straight_time_min"					"0.1"
+	"projectile_straight_time_max"					"2"
+	"projectile_straight_radius_min"				"0"
+	"projectile_straight_radius_max"				"4"
+
+	"projectile_explosion_delay"					"0.5"
+
+	SP_BASE
+	{
+		"enable_highlight_networking_on_creation"		"1"
+	}
+
+	MP_BASE
+	{
+		"enable_highlight_networking_on_creation"		"<KEEP_DEFAULT>"
+	}
+
+	// Models
+//	"projectilemodel" 								"models/weapons/bullets/projectile_rocket_largest.mdl"
+	"projectilemodel"								"models/weapons/grenades/m20_f_grenade_projectile.mdl"
+
+	// Effects
+	"tracer_effect"   								"weapon_tracers_red_laser"
+	"impact_effect_table"							"exp_softball_grenade"
+	"projectile_trail_effect_0" 							"weapon_40mm_projectile" //Rocket_Smoke_SMALL_Titan_2
+	"vortex_absorb_effect"							"wpn_vortex_projectile_frag_FP"
+	"vortex_absorb_effect_third_person"						"wpn_vortex_projectile_frag"
+	"vortex_absorb_sound"							"Vortex_Shield_AbsorbBulletLarge"
+	"vortex_absorb_sound_1p_vs_3p"						"Vortex_Shield_AbsorbBulletLarge_1P_VS_3P"
+	"vortex_drain"									"0.0"
+	"projectile_adjust_to_gun_barrel"				"1"
+
+	"critical_hit"									"0"
+
+	// Sound
+	"fire_sound_1_player_1p"						"Weapon_Softball_Fire_1P"
+	"fire_sound_1_player_3p"						"Weapon_Softball_Fire_3P"
+	"sound_dryfire"									"titan_dryfire"
+	"sound_weapon_ready"							"HUD_TitanOffenseAbility_replenished_1P"
+
+	// Damage - When Used by Players
+	"damage_type" 									"burn"
+	"damage_near_distance"							"800"
+	"damage_far_distance" 							"1200"
+	"damage_near_value"   							"10"
+	"damage_far_value"								"10"
+	"explosion_damage"								"40"
+	"explosion_damage_heavy_armor"					"230"
+
+	"explosion_inner_radius"  						"160"
+	"explosionradius" 								"240"
+	"impulse_force"   								"1"
+
+	// Ammo
+	"ammo_display"									"bar"
+	"ammo_stockpile_max"							"180"
+	"ammo_clip_size"   								"180"
+	"ammo_default_total"							"180"
+	"ammo_per_shot"									"10"
+	"ammo_min_to_fire"								"180"
+
+	"projectiles_per_shot"							"1"
+//	"cooldown_type"                                 "ammo_instant"
+	"cooldown_type"                                 "ammo_per_shot"
+
+	// Regen Ammo
+	"regen_ammo_refill_rate"						"20.0"
+	"regen_ammo_refill_start_delay"					"1.0"
+
+	"charge_time" 									"30.0"
+	"charge_cooldown_time"							"0.0"
+	"charge_cooldown_delay"   						"0.0"
+	"charge_end_forces_fire"  						"1"
+	"charge_require_input"							"1"
+
+	// Behavior
+	"fire_rate"   									"18"
+	"burst_fire_count"                              "18" // "9"
+	"burst_fire_delay"                              "0.7"
+	"zoom_time_in"									"0.1"
+	"zoom_time_out"   								"0.1"
+	"zoom_fov"										"50"
+	"reload_time" 									"0"
+	"holster_time"									"0.65"
+	"deploy_time" 									"0.3"
+	"lower_time"  									"0.65"
+	"raise_time"  									"0.3"
+	"vortex_refire_behavior"  						"grenade"
+	"allow_empty_fire"								"0"
+	"reload_enabled"  								"0"
+	"allow_empty_click"   							"1"
+	"empty_reload_only"   							"0"
+	"trigger_snipercam"   							"1"
+	"allow_headshots" 								"0"
+	"play_offhand_charging_anim"  					"1"
+	"play_offhand_start_end_anim"					"1"
+	"grenade_bounce_vel_frac_shallow"				"0.4"
+	"grenade_bounce_vel_frac_sharp"					"0.25"
+	"grenade_bounce_vel_frac_along_normal"			"0.5"
+	"grenade_bounce_randomness"						"0.2"
+	"grenade_bounce_extra_vertical_randomness"		"0.2"
+	"grenade_roll_vel_frac_per_second"				"0.1"
+	"projectile_launch_speed"						"3250"
+	"projectile_launch_pitch_offset"				"1"
+	//"projectile_first_person_offset_fraction"		"2"
+	"projectile_gravity_scale"						"3.38"
+
+	"spread_stand_hip"								"3"
+	"spread_stand_hip_run"							"3"
+	"spread_stand_ads"								"1"
+	"spread_crouch_hip"   							"3"
+	"spread_crouch_ads"   							"1"
+	"spread_air_hip"  								"3"
+	"spread_air_ads"  								"1"
+
+	"owner_muzzle_index"							"1"
+
+	"fx_muzzle_flash_view"							"P_wpn_muzzleflash_smr_FP"
+	"fx_muzzle_flash_world"							"P_wpn_muzzleflash_smr"
+	"fx_muzzle_flash_attach"						"muzzle_flash"//, "muzzle_flash_2"	// on titan in 3p, on weapon in 1p
+
+	// Spread
+	//"spread_stand_hip"  							"0"
+	//"spread_stand_ads"   							"0"
+
+	"ammo_suck_behavior"							"offhand_weapons"
+
+	// View Kick
+	"viewkick_spring" 								"launcher"
+
+	"viewkick_pitch_base" 							"-0.07"
+	"viewkick_pitch_random"   						"0.07"
+	"viewkick_pitch_softScale"						"1.2"
+	"viewkick_pitch_hardScale"						"4"
+
+	"viewkick_yaw_base"   							"0.0"
+	"viewkick_yaw_random" 							"0.15"
+	"viewkick_yaw_softScale"  						"1.3"
+	"viewkick_yaw_hardScale"  						"1.0"
+
+	"viewkick_roll_base"  							"0.0"
+	"viewkick_roll_randomMin" 						"0.1"
+	"viewkick_roll_randomMax" 						"0.2"
+	"viewkick_roll_softScale" 						"0.2"
+	"viewkick_roll_hardScale" 						"1.7"
+
+	"viewkick_hipfire_weaponFraction" 				"0.8"
+	"viewkick_hipfire_weaponFraction_vmScale" 		"1.0"
+	"viewkick_ads_weaponFraction" 					"0.3"
+	"viewkick_ads_weaponFraction_vmScale" 			"0.5"
+
+	"viewkick_perm_pitch_base" 						"0.0"
+	"viewkick_perm_pitch_random"   					"0.1"
+	"viewkick_perm_yaw_base"   						"0.0"
+	"viewkick_perm_yaw_random" 						"0.1"
+
+	"viewkick_scale_min_ads"  						"0.5"
+	"viewkick_scale_max_ads"  						"0.5"
+
+	"viewpunch_multiplier"							"1.25"
+
+	// Rumble
+	"fire_rumble" 									"rumble_titan_shoulder_rocketbig"
+
+	// Sway
+
+	// NPC
+	"proficiency_poor_spreadscale"					"7.0"
+	"proficiency_average_spreadscale" 				"5.0"
+	"proficiency_good_spreadscale"					"4.0"
+	"proficiency_very_good_spreadscale"   			"2.0"
+
+	"npc_accuracy_multiplier_pilot"					"0.3"
+
+	"npc_aim_at_feet"								"0"
+	"npc_aim_at_feet_vs_heavy_armor"				"0"
+
+	"npc_min_range"   								"600"
+	"npc_max_range"   								"3000"
+	"npc_min_burst"   								"9"
+	"npc_max_burst"   								"9"
+	"npc_rest_time_between_bursts_min"				"9.0"
+	"npc_rest_time_between_bursts_max"				"14.0"
+
+	"npc_charge_time_min"							"1.0"	// for rocketpod animation time
+	"npc_charge_time_max"							"1.0"
+
+	// WeaponED Unhandled Key/Values and custom script Key/Values
+	"sway_turn_angle_factor"  						".8"
+	"sway_turn_origin_factor" 						"0.2"
+	"sway_turn_angle_factor_zoomed"   				"1.5"
+	"sway_turn_origin_factor_zoomed"  				"0.2"
+	"sway_move_angle_factor"  						"-2"
+	"sway_move_origin_factor" 						"-.2"
+	"sway_move_angle_factor_zoomed"   				"0"
+	"sway_move_origin_factor_zoomed"  				"0.03"
+	"sway_gain"   									"15.0"
+
+	"scripted_projectile_max_timestep"				"0.2"
+
+	"grenade_arc_indicator_effect"					"P_grenade_arc_proto_first_orange"
+	"grenade_arc_impact_indicator_effect"			"grenade_arc_impact_proto_orange"
+	"grenade_arc_indicator_show_from_hip"			"1"
+	"grenade_arc_indicator_bounce_count"			"2"
+
+	Mods
+	{
+		magnetic_rollers
+		{
+			"grenade_bounce_vel_frac_along_normal"			"0.8"
+			"grenade_bounce_vel_frac_shallow"				"0.65"
+			"grenade_bounce_vel_frac_sharp"					"0.5"
+			"grenade_bounce_randomness"						"0.2"
+			"grenade_bounce_extra_vertical_randomness"		"0.2"
+			"grenade_roll_vel_frac_per_second"				"0.8"
+		}
+
+		grenade_swarm
+		{
+			"burst_fire_count"				"*2"
+			"ammo_per_shot"					"*0.5"
+		}
+
+		pyrotechnics
+		{
+			"explosion_inner_radius"		"240"
+		}
+	}
+
+	active_crosshair_count				"1"
+	rui_crosshair_index					"0"
+
+	RUI_CrosshairData
+	{
+		DefaultArgs
+		{
+			adjustedSpread				weapon_spread
+			//adsFrac 					player_zoomFrac
+			isReloading					weapon_is_reloading
+			teamColor					crosshair_team_color
+			isAmped						weapon_is_amped
+			crosshairMovementX          crosshair_movement_x
+			crosshairMovementY          crosshair_movement_y
+		}
+
+		Crosshair_1
+		{
+			"ui"						"ui/crosshair_grenade_launcher"
+			"base_spread"				"1.0"
+			Args
+			{
+				isFiring				weapon_is_firing
+			}
+		}
+	}
+}

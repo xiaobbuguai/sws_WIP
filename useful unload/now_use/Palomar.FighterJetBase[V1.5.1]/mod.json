@@ -1,0 +1,26 @@
+{
+	"Name": "Controllable Spaceships",
+	"Description": "Adds Spaceship Classes that can be used by other Mods.",
+	"Version": "1.5.1",
+	"LoadPriority": 2,
+	"RequiredOnClient": false,
+	"ConVars": [],
+	"Scripts": [
+		{
+
+			"Path": "_spaceship_classes.gnut",
+			"RunOn": "SERVER",
+			"ServerCallback": {
+				"After": "SpaceShipClassesInit"
+			}
+		},
+		{
+			"Path": "shipcontroller.nut",
+			"RunOn": "SERVER",
+			"ServerCallback": {
+				"After": "ShipControllerInit"
+			}
+		}
+	],
+	"Localisation": []
+}
