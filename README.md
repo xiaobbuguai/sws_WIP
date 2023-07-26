@@ -2,7 +2,7 @@
 
 Maintained by [DBmaoha](https://github.com/DBmaoha), for saving own server using(and modified) mods.
 
-If you're not pleased with our usage, please [Send Issue](https://github.com/xiaobbuguai/sws_WIP/issues)
+If you're not pleased with our usage, please [Send Issue](https://github.com/xiaobbuguai/sws_WIP/issues). I can cut off this repository if it makes you unhappy.
 
 
 ## MODS USING
