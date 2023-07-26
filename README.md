@@ -1,2 +1,2 @@
 # sws_WIP
- R2Northstar with starwishsever viperbattle mod
+ R2Northstar with starwishsever viperbattle
