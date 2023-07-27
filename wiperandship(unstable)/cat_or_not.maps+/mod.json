@@ -100,7 +100,10 @@
 		},
 		{
 			"Path": "voper_battle.nut",
-			"RunOn": "SERVER && MP"
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "VoperBattle_Init"
+			}
 		},
 		{
 			"Path": "cat.s_room.nut",

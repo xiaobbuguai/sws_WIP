@@ -1,3 +1,5 @@
+global function VoperBattle_Init
+
 global function StartVoperBattle
 global function CoreFire
 global function HandleCamera
@@ -18,6 +20,11 @@ global int PassWaves
 
 const vector Player_SpawnPoint_Voper = < -151, 1091, 1490 >
 
+// voper settings
+const float VOPER_DAMAGE_REDUCTION_SCALE = 0.9
+const int VOPER_MAX_HEALTH = 60000 // 60000 health with 0.9 damage reduction ~= 540000 health
+const float VOPER_DAMAGE_SCALE = 2.5
+
 struct
 {
     ShipStruct& viperShip
@@ -28,8 +35,9 @@ struct
 
     entity RespawnShip
 } file
+
 //生成泰坦种类
-array<string> basic_titan = [
+const array<string> basic_titan = [
     "npc_titan_atlas_stickybomb_bounty",
     "npc_titan_ogre_meteor_bounty",
     "npc_titan_stryder_sniper_bounty",
@@ -43,51 +51,121 @@ array<string> basic_titan = [
     "npc_titan_vanguard"
 ]
 
+void function VoperBattle_Init()
+{
+    // add new boss titan
+	ExtraSpawner_RegisterToBossTitanSpawnList
+	(
+		"viper_boss",									// spawn name. unique
+		"Viper",										// boss name
+		"titan_stryder_sniper",							// setFile
+		"npc_titan_stryder_sniper_bounty",				// aiSet, bigger overlay
+		"behavior_titan_sniper",						// titan behavior
+		"execution_northstar_prime",					// executionRef
+		"#BOSSNAME_VIPER",								// boss title
+		"毒蛇",											// pilot title. can't use localized string
+		$"models/humans/pilots/pilot_medium_reaper_m.mdl",		// character model, use mp pilot model: pulse blade male
+		BossLoadout_Viper, 				                // loadout function
+		1,												// skin index, unsure
+		10												// decal index
+	)
+
+    // debug
+    AddClientCommandCallback( "voper_battle", CC_ForceStartVoperBattle )
+}
+
+void function BossLoadout_Viper( entity titan )
+{
+    // generic loadout function for bosses that has no pilot model for mp
+	entity soul = titan.GetTitanSoul()
+	if ( IsValid( soul ) )
+	{
+		// disable their ejecting, so players won't easily notice that they have no proper model
+		TitanHealth_SetSoulNPCPilotEjectDelay( soul, -1 ) // -1 means never eject
+	}
+}
+
+bool function CC_ForceStartVoperBattle( entity player, array<string> args )
+{
+    // needs checks here
+    // requires karma.abuse
+	hadGift_Admin = false;
+	CheckAdmin( player );
+	if ( hadGift_Admin != true )
+	{
+		Kprint( player, "Admin permission not detected." );
+		return false;
+	}
+
+    thread StartVoperBattle( 0 )
+    return true
+}
+
 void function StartVoperBattle( int varient )
 {
+    // npc synced melee think
+    MeleeSyncedNPC_AllowNPCTitanExecutions( true )
+	MeleeSyncedNPC_AllowNPCPilotExecutions( true )
+	MeleeSyncedNPC_AllowNPCGruntExecutions( true ) // spectres don't have neck snap attacker sequence, they'll try pilot executions, which is bad
+	MeleeSyncedNPC_AllowNPCPilotExecuteOtherNPCs( true ) // pilot models don't have syncedMeleeData initialized, so let them use mp pilot executions
 
     thread TEAM_Player()
+
     vector origin_ref = <3352, -4226, 3267>
     if ( varient == 0 )
+    {
         origin_ref = <985, 1138, 1604>
-        switch(GetMapName()){
-            case "mp_angel_city":
+
+        switch( GetMapName() )
+        {
+            case "mp_angel_city": //天使城
                 origin_ref=< 0, 0, 0 >
-            break;//天使城
-            case "mp_black_water_canal":
+                break;
+
+            case "mp_black_water_canal": //黑水运河
                 origin_ref=< 400, -1250, 600 >
-            break;//黑水运河
-            case "mp_colony02":
+                break;
+
+            case "mp_colony02": //殖民地
                 origin_ref=< 800, 5115, 310 >
-            break;//殖民地
-            case "mp_drydock":
+                break;
+
+            case "mp_drydock": //干坞
                 origin_ref=< 3000, -3250, 800 >
-            break;//船坞
-            case "mp_eden":
+                break;
+
+            case "mp_eden": //伊甸
                 origin_ref=< 4600, 500, 500 >
-            break;//伊甸园
-            case "mp_thaw":
+                break;
+
+            case "mp_thaw": //系外行星
                 origin_ref=< 2000, -1498, 0 >
-            break;//系外行星
-            case "mp_glitch":
+                break;
+
+            case "mp_glitch": //异常
                 origin_ref=< 3350, 100, 550 >
-            break;//异常
-            case "mp_relic02":
+                break;
+
+            case "mp_relic02": //遗迹
                 origin_ref=< 5635, -3527, 380 >
-            break;//遗迹
-            case "mp_wargames":
+                break;
+            case "mp_wargames": //战争游戏
                 origin_ref=< 2600, 1200, 300 >
-            break;//战争游戏
-            case "mp_homestead":
+                break;
+
+            case "mp_homestead": //家园
                 origin_ref=< 5279, 1716, 600 >
-            break;//家园
+                break;
         }
+    }
     file.ref = CreateScriptMover( origin_ref, < 0, 90, 0 > )
 
     vector delta = <100,0,5000>
     LocalVec origin
 	origin.v = file.ref.GetOrigin() + delta
 
+    // for extra_ai_spawner boss viper
+    /*
     entity viper = CreateNPCTitan( "titan_stryder", 10, origin.v, <0,90,0>, [] )
     SetSpawnOption_AISettings( viper, "npc_titan_stryder_sniper_boss_fd" )
     DispatchSpawn( viper )
@@ -154,14 +232,38 @@ void function StartVoperBattle( int varient )
         file.RespawnShip.Anim_Play( "dropship_open_doorR_idle" )
         file.RespawnShip.Anim_Play( "dropship_open_doorL_idle" )
     }
+    */
+
+    entity viper = ExtraSpawner_SpawnBossTitan( origin.v, <0,90,0>, TEAM_IMC, "viper_boss", TITAN_MERC )
+    file.viper = viper
+
+    MpBossTitan_SetDamageScale( viper, VOPER_DAMAGE_SCALE ) // they can deal higher damage
+	MpBossTitan_SetDamageReductionScale( viper, VOPER_DAMAGE_REDUCTION_SCALE )
+    viper.GetOffhandWeapon( OFFHAND_EQUIPMENT ).AllowUse( false ) // disable core ability, we use scripted titan core weapon
+
+    viper.SetMaxHealth( VOPER_MAX_HEALTH )
+    viper.SetHealth( viper.GetMaxHealth() )
+	viper.SetNoTarget( true )
+	viper.SetNoTargetSmartAmmo( false )
+    viper.kv.AccuracyMultiplier = 50.0
+    viper.kv.WeaponProficiency = 50.0
+
+    GiveViperLoadout( viper, true )
 
     file.fighting = true
 
+    // for extra_ai_spawner boss viper
+    /*
     thread StartIntro( file.viperShip, varient )
     thread RunJetSfx( viper )
+    */
+    thread StartIntro_BossViper( viper, varient )
 
+    // for extra_ai_spawner boss viper
+    /*
     if ( varient == 0 )
         thread correctViper()
+    */
 }
 
 string IMC_Player_Name = ""
@@ -224,6 +326,83 @@ void function StartIntro( ShipStruct viperShip, int varient )
     {
         thread Phase1Think()
         //thread PhaseBackThink()
+    }
+}
+
+// for extra_ai_spawner boss viper
+void function StartIntro_BossViper( entity viper, int varient )
+{
+    viper.EndSignal( "OnDeath" )
+    viper.EndSignal( "OnDestroy" )
+
+    WaitSignal( viper, "BossTitanIntroEnded" ) // intro reaches combat point
+    EmitSoundOnEntity( viper, "music_s2s_14_titancombat" )
+
+    // viper mover setup
+    vector delta = <100,0,5000>
+    LocalVec origin
+	origin.v = file.ref.GetOrigin() + delta
+
+    entity mover = CreateScriptMover( <0,0,0>, <0,180,0> )
+	entity link = CreateExpensiveScriptMover( <0,0,0>, <0,180,0> )
+	SetOriginLocal( mover, origin )
+	link.SetParent( mover, "", false, 0 )
+	viper.SetParent( link, "", false, 0 )
+    link.NonPhysicsRotateTo( <0,180,0>, 0.0000001,0,0 )
+
+	ShipStruct viperShip
+	viperShip.model = viper
+	viperShip.mover = mover
+	viperShip.boundsMinRatio 	= 0.5
+	viperShip.defBankTime		= 0.5	//1.5
+	viperShip.defAccMax 		= 500	//350
+	viperShip.defSpeedMax 		= 1000	//500
+	viperShip.defRollMax 		= 15
+	viperShip.defPitchMax 		= 3
+	viperShip.FuncGetBankMagnitude = ViperBankMagnitude
+
+	InitEmptyShip( viperShip )
+
+	// int backID = viper.LookupPoseParameterIndex( "move_yaw_backward" )
+    int backID = viper.LookupPoseParameterIndex( "move_yaw" )
+	viper.SetPoseParameterOverTime( backID, 45, 0.1 )
+
+	thread RunJetSfx( viper )
+
+	file.viperShip = viperShip
+
+	file.viperShip.localVelocity.v = <0,500,0>
+	SetMaxSpeed( file.viperShip, 700 )
+	SetMaxAcc( file.viperShip, 300 )
+
+	thread ShipIdleAtTargetPos( file.viperShip, WorldToLocalOrigin( file.ref.GetOrigin() + < 500, 0, 500 > ) , <0,100,500> )
+    viperShip.goalRadius = 500
+    file.viperShip.mover.NonPhysicsRotateTo( <0,180,0>, 0.0000001,0,0 )
+
+    if ( varient == 0 )
+    {
+        file.RespawnShip = CreateExpensiveScriptMoverModel( $"models/vehicle/goblin_dropship/goblin_dropship.mdl", Player_SpawnPoint_Voper + <0,0,1500>, <0,90,0>, 6, 100000 )
+        file.RespawnShip.Anim_Play( "dropship_open_doorR_idle" )
+        file.RespawnShip.Anim_Play( "dropship_open_doorL_idle" )
+        file.RespawnShip.NotSolid() // stop it's collision
+    }
+
+    if ( varient == 0 )
+        thread correctViper()
+    // viper mover setup ends
+
+    thread CoreFire()
+
+    thread ShipIdleAtTargetPos( viperShip, WorldToLocalOrigin( file.ref.GetOrigin() + < -500, 0, 200 > ) , <100,500,0> )
+    link = viper.GetParent()
+    link.NonPhysicsRotateTo( <0,180,0>, 0.00000001,0,0 )
+
+    thread AnimateViper( viper )
+
+    if ( varient == 0 )
+    {
+        thread Phase1Think()
+        thread PhaseBackThink() 
     }
 }
 
@@ -331,10 +510,11 @@ void function Phase1Think()
     int team = file.viperShip.model.GetTeam()
     //vector origin = GetClosest2D( SpawnPoints_GetDropPod(), <1200, 1145, 1380>, 1000000000 ).GetOrigin()
 
-    int count = GetPlayerArray().len()
+    int count = 10 //GetPlayerArray().len()
     if ( count > 10 )
         count = 10
 
+    /*
     foreach( string NpcName in ["npc_super_spectre"] )
     {
         for( int x = 0; x < count; x++ )
@@ -354,6 +534,37 @@ void function Phase1Think()
 
         wait 0.1
     }
+    */
+
+    // phase 1 enemy: reaper can launch ticks
+    ExtraSpawner_SetNPCHandlerFunc( "npc_super_spectre", VoperBattle_ReaperHandler_Phase1 ) // npc handler
+
+    for( int x = 0; x < count; x++ )
+    {
+        while ( GetPlayerArray_Alive().len() == 0 ) // no player alive!
+        {
+            // keep waiting
+            WaitFrame()
+        }
+
+        array<entity> alivePlayers = GetPlayerArray_Alive()
+        entity luckyPlayer = alivePlayers[ RandomInt( alivePlayers.len() ) ]
+
+        vector origin = luckyPlayer.GetOrigin()
+        vector angles = < 0, luckyPlayer.GetAngles().y, 0 > // npcs never rotates x&z angle
+
+        thread ExtraSpawner_SpawnReaperCanLaunchTicks( 
+            origin,                     // origin
+            angles,                     // angles
+            team,                       // team
+            "npc_super_spectre_aitdm",  // reaper aiset
+            "npc_frag_drone_fd"         // ticks aiset
+        )
+
+        wait 0.7
+    }
+
+    wait 0.1
 
     for(;;)
     {
@@ -377,6 +588,20 @@ void function Phase1Think()
     thread RocketFireThink()
 }
 
+void function VoperBattle_ReaperHandler_Phase1( entity reaper )
+{
+    // start search for enemies
+	thread ExtraSpawner_ReaperHandler( reaper )
+    // add script name for handling phases
+    reaper.SetScriptName( "phase1_ents" )
+    // highlight
+    thread SonarTitan( reaper, 3000 )
+
+    // update health
+    reaper.SetMaxHealth( reaper.GetMaxHealth() * 2 )
+    reaper.SetHealth( reaper.GetMaxHealth() )
+}
+
 void function Phase2Think()
 {
     foreach( entity player in GetPlayerArray() )
@@ -387,7 +612,7 @@ void function Phase2Think()
     entity npc
     int team = file.viperShip.model.GetTeam()
 
-    int count = GetPlayerArray().len()
+    int count = 7 //GetPlayerArray().len()
 
     if ( count >= 7 )
         count = 7
@@ -404,6 +629,7 @@ void function Phase2Think()
         }
     }
 
+    /*
     for( int x = 0; x < count; x++ )
     {
         vector LuckyPlayer = GetPlayerArray()[(GetPlayerArray().len() == 1) ? 0 : RandomInt(GetPlayerArray().len()-1)].GetOrigin()
@@ -420,6 +646,47 @@ void function Phase2Think()
 
 
         wait 0.00000000001
+    }
+    */
+
+    // phase 2 enemy: npc pilot embarked titans, with higher core rate
+    // setup titan handler
+    ExtraSpawner_SetNPCHandlerFunc( "npc_titan", VoperBattle_TitanHandler_Phase2 )
+    // valid titan enemies
+    const array<string> TITAN_SPAWN_NAMES =
+    [
+        "ion",
+        "scorch",
+        "tone",
+        "northstar",
+        "ronin",
+        "legion",
+        // no monarch
+    ]
+
+    for( int x = 0; x < count; x++ )
+    {
+        while ( GetPlayerArray_Alive().len() == 0 ) // no player alive!
+        {
+            // keep waiting
+            WaitFrame()
+        }
+
+        array<entity> alivePlayers = GetPlayerArray_Alive()
+        entity luckyPlayer = alivePlayers[ RandomInt( alivePlayers.len() ) ]
+
+        vector origin = luckyPlayer.GetOrigin()
+        vector angles = < 0, luckyPlayer.GetAngles().y, 0 > // npcs never rotates x&z angle
+        string titanToSpawn = TITAN_SPAWN_NAMES[ RandomInt( TITAN_SPAWN_NAMES.len() ) ]
+
+        thread ExtraSpawner_SpawnPilotCanEmbark(
+            origin,             // origin
+            angles,             // angles
+            team,               // team
+            titanToSpawn        // spawn name
+        )
+
+        wait 1.5
     }
 
     for(;;)
@@ -444,6 +711,24 @@ void function Phase2Think()
 
 }
 
+// titan handler
+void function VoperBattle_TitanHandler_Phase2( entity titan )
+{
+    // search for enemies
+    thread ExtraSpawner_TitanHandler( titan )
+
+    //TitanHealth_SetTitanCoreBuilderMultiplier( titan, 4.0 ) // want them get core abilities faster
+
+    // script name for handling spawns
+    titan.SetScriptName( "phase2_ents" )
+    // highlight
+    thread SonarTitan( titan, 3000, 5 )
+
+    // update health
+    titan.SetMaxHealth( titan.GetMaxHealth() * 2 )
+    titan.SetHealth( titan.GetMaxHealth() )
+}
+
 void function Phase3Think()
 {
     file.viperShip.model.ClearInvulnerable()
@@ -451,8 +736,9 @@ void function Phase3Think()
     entity link = file.viperShip.model.GetParent()
     link.NonPhysicsRotateTo( <0,180,0>, 0.00000001,0,0 )
     int waves = 0
+
     thread UnlimitedSpawn()
-    file.viperShip.model.SetHealth(500000)
+    file.viperShip.model.SetHealth( VOPER_MAX_HEALTH )
 
     foreach( entity player in GetPlayerArray() )
     {
@@ -480,6 +766,8 @@ void function Phase3Think()
     AddTeamScore( TEAM_IMC, 10000 )
 }
 
+// I don't want to do anything based on this.
+/*
 void function UnlimitedSpawn()
 {
     entity npc
@@ -732,6 +1020,326 @@ if (IsValid( viper ) && IsAlive( viper )){
 }
 }
 }
+*/
+
+// FORMATTED VERSION
+/*
+void function UnlimitedSpawn()
+{
+    entity npc
+    entity npcs
+    int team = file.viperShip.model.GetTeam()
+    int PassWaves = 0
+    //int count = GetPlayerArray().len() + 1
+    int MissionStart = 0
+    //if ( count >= 7 ){
+    int count = 5
+        //wait 0.1
+    //}
+    for (; ;) 
+    {
+        //int ViperMinHp = 520000 - 10000
+        entity viper = file.viperShip.model
+
+        if ( !IsValid( viper ) || !IsAlive( viper ) )
+            return
+
+        //“家园”部分（加入护送莎拉布里格斯）
+        if ( GetMapName() == "mp_homestead" )
+        {
+            if ( PassWaves == 0 &&  && viper.GetHealth() > 150000 )
+            {//
+                EmitSoundOnEntity( viper, "diag_sp_bossFight_STS676_22_01_imc_viper" )
+                foreach( entity player in GetPlayerArray() )
+                    Chat_ServerPrivateMessage(player, string(viper.GetHealth()), false)
+                viper.SetInvulnerable()
+                //viper.SetHealth(viper.GetHealth() - 15000)
+                //vector LuckyPlayer = GetPlayerArray()[(GetPlayerArray().len() == 1) ? 0 : RandomInt(GetPlayerArray().len()-1)].GetOrigin()
+                SpawnEnemies( viper.GetOrigin(), 4, team, file.viperShip.model )
+
+                for( int x = 0; x < count; x++ )
+                {
+                    vector LuckyPlayer = GetPlayerArray()[(GetPlayerArray().len() == 1) ? 0 : RandomInt(GetPlayerArray().len()-1)].GetOrigin()
+                    npc = CreateNPCTitan( basic_titan[waves], team, LuckyPlayer, <0,0,0>, [] )
+                    SetSpawnOption_NPCTitan( npc, TITAN_HENCH )
+                    SetSpawnOption_AISettings( npc, basic_titan[waves] )
+                    SetSpawnOption_Titanfall( npc )
+                    DispatchSpawn( npc )
+                    npc.AssaultPoint( Player_SpawnPoint_Voper )
+                    npc.AssaultSetFightRadius( 10000 )
+                    npc.AssaultSetGoalRadius( 1000 )
+                    npc.SetScriptName( "phase3_ents" )
+                    wait 1
+                }
+
+                wait 5
+
+                for( int x = 0; x < count; x++ )
+                {
+                    vector LuckyPlayer = GetPlayerArray()[(GetPlayerArray().len() == 1) ? 0 : RandomInt(GetPlayerArray().len()-1)].GetOrigin()
+                    npc = CreateNPC( "npc_pilot_elite", team, LuckyPlayer, <0,0,0> )
+                    SetSpawnOption_AISettings( npc, "npc_pilot_elite" )
+                    DispatchSpawn( npc )
+                    npc.AssaultPoint( Player_SpawnPoint_Voper )
+                    npc.AssaultSetFightRadius( 10000 )
+                    npc.AssaultSetGoalRadius( 1000 )
+                    //npc.SetScriptName( "phase3_ents" )
+                    npc.TakeWeaponNow("mp_weapon_r97")
+                    npc.GiveWeapon( "mp_weapon_alternator_smg", ["super"] )
+                    wait 0.1
+                    thread SuperSpectre_WarpFall( npc )
+                    wait 0.5
+                }
+
+                for (; ;) 
+                {
+                    if ( GetEntArrayByScriptName( "phase3_ents" ).len() == 0)
+                    {
+                        waves++
+                        PassWaves++
+                        break
+                    }
+                    else if ( viper.GetHealth() < 25000 )
+                    {
+                        break
+                    }
+                    wait 0.1
+                }
+            }
+            else if ( viper.GetHealth() > 100001 && viper.GetHealth() < 150000 && MissionStart == 0)
+            {
+                MissionStart++
+                PassWaves = 2
+                viper.SetInvulnerable()
+                thread SarahDefenseThink( TEAM_MILITIA )
+            }
+            else if ( PassWaves == 0 && viper.GetHealth() < 100000)
+            {//
+                EmitSoundOnEntity( viper, "diag_sp_bossFight_STS676_22_01_imc_viper" )
+                viper.SetInvulnerable()
+                //viper.SetHealth(viper.GetHealth() - 15000)
+                //vector LuckyPlayer = GetPlayerArray()[(GetPlayerArray().len() == 1) ? 0 : RandomInt(GetPlayerArray().len()-1)].GetOrigin()
+                SpawnEnemies( viper.GetOrigin(), 4, team, file.viperShip.model )
+
+                for( int x = 0; x < count; x++ )
+                {
+                    vector LuckyPlayer = GetPlayerArray()[(GetPlayerArray().len() == 1) ? 0 : RandomInt(GetPlayerArray().len()-1)].GetOrigin()
+                    npc = CreateNPCTitan( basic_titan[waves], team, LuckyPlayer, <0,0,0>, [] )
+                    SetSpawnOption_NPCTitan( npc, TITAN_HENCH )
+                    SetSpawnOption_AISettings( npc, basic_titan[waves] )
+                    SetSpawnOption_Titanfall( npc )
+                    DispatchSpawn( npc )
+                    npc.AssaultPoint( Player_SpawnPoint_Voper )
+                    npc.AssaultSetFightRadius( 10000 )
+                    npc.AssaultSetGoalRadius( 1000 )
+                    npc.SetScriptName( "phase3_ents" )
+                    wait 1
+                }
+
+                wait 5
+
+                for( int x = 0; x < count; x++ )
+                {
+                    vector LuckyPlayer = GetPlayerArray()[(GetPlayerArray().len() == 1) ? 0 : RandomInt(GetPlayerArray().len()-1)].GetOrigin()
+                    npc = CreateNPC( "npc_pilot_elite", team, LuckyPlayer, <0,0,0> )
+
+                    SetSpawnOption_AISettings( npc, "npc_pilot_elite" )
+                    DispatchSpawn( npc )
+
+                    npc.AssaultPoint( Player_SpawnPoint_Voper )
+                    npc.AssaultSetFightRadius( 10000 )
+                    npc.AssaultSetGoalRadius( 1000 )
+
+                    //npc.SetScriptName( "phase3_ents" )
+                    npc.TakeWeaponNow("mp_weapon_r97")
+                    npc.GiveWeapon( "mp_weapon_alternator_smg", ["super"] )
+
+                    wait 0.5
+                    thread SuperSpectre_WarpFall( npc )
+                    wait 0.5
+                }
+
+                for (; ;) 
+                {
+                    if ( GetEntArrayByScriptName( "phase3_ents" ).len() == 0)
+                    {
+                        waves++
+                        PassWaves++
+                        break
+                    }
+                    wait 0.1
+                }
+            }
+
+            else if ( PassWaves == 1 && viper.GetHealth() > 150000 )
+            {
+                PassWaves++
+                int ViperMinHp = viper.GetHealth() - 25000
+                viper.ClearInvulnerable()
+                EmitSoundOnEntity( viper, "diag_sp_bossFight_STS676_36_01_imc_viper" )
+                viper.ClearInvulnerable()
+
+                for (; ;) 
+                {
+                    if ( viper.GetHealth() < ViperMinHp)
+                    {
+                        PassWaves = 0
+                        break
+                    }
+                    else if (viper.GetHealth() < 150000)
+                    {
+                            break
+                    }
+                    else if ( ViperMinHp < 150000)
+                    {
+                        break
+                    }
+                    wait 0.1
+                }
+            }
+            else if ( PassWaves == 1 && viper.GetHealth() < 200001 )
+            {
+                PassWaves++
+                int ViperMinHp = viper.GetHealth() - 25000
+                viper.ClearInvulnerable()
+                EmitSoundOnEntity( viper, "diag_sp_bossFight_STS676_36_01_imc_viper" )
+
+                viper.ClearInvulnerable()
+                for (; ;) 
+                {
+                    if ( viper.GetHealth() < ViperMinHp)
+                    {
+                        PassWaves = 0
+                        break
+                    }
+                    wait 0.1
+                }
+            }
+        }
+        else
+        {
+            //非“家园”部分
+            if ( waves > 9 )
+            {
+                waves = 0
+            }
+
+            else if ( viper.GetHealth() < 5000)
+            {
+                thread SetBehavior( file.viperShip, eBehavior.DEATH_ANIM )
+                viper.SetInvulnerable()
+                EmitSoundOnEntity( viper, "diag_sp_bossFight_STS676_42_01_imc_viper" )
+                wait 5
+                AddTeamScore( TEAM_MILITIA, 114514 )
+                AddTeamScore( TEAM_IMC, 111111 )
+                viper.Die()
+                break
+            }
+
+            else if ( PassWaves == 0 )
+            {//
+                EmitSoundOnEntity( viper, "diag_sp_bossFight_STS676_22_01_imc_viper" )
+                viper.SetInvulnerable()
+                //viper.SetHealth(viper.GetHealth() - 15000)
+                //vector LuckyPlayer = GetPlayerArray()[(GetPlayerArray().len() == 1) ? 0 : RandomInt(GetPlayerArray().len()-1)].GetOrigin()
+                SpawnEnemies( viper.GetOrigin(), 4, team, file.viperShip.model )
+
+                for( int x = 0; x < count; x++ )
+                {
+                    vector LuckyPlayer = GetPlayerArray()[(GetPlayerArray().len() == 1) ? 0 : RandomInt(GetPlayerArray().len()-1)].GetOrigin()
+                    npc = CreateNPCTitan( basic_titan[waves], team, LuckyPlayer, <0,0,0>, [] )
+                    SetSpawnOption_NPCTitan( npc, TITAN_HENCH )
+                    SetSpawnOption_AISettings( npc, basic_titan[waves] )
+                    SetSpawnOption_Titanfall( npc )
+                    DispatchSpawn( npc )
+                    npc.AssaultPoint( Player_SpawnPoint_Voper )
+                    npc.AssaultSetFightRadius( 10000 )
+                    npc.AssaultSetGoalRadius( 1000 )
+                    npc.SetScriptName( "phase3_ents" )
+                    wait 1
+                }
+
+                wait 5
+
+                for( int x = 0; x < count; x++ )
+                {
+                    vector LuckyPlayer = GetPlayerArray()[(GetPlayerArray().len() == 1) ? 0 : RandomInt(GetPlayerArray().len()-1)].GetOrigin()
+                    npc = CreateNPC( "npc_pilot_elite", team, LuckyPlayer, <0,0,0> )
+                    SetSpawnOption_AISettings( npc, "npc_pilot_elite" )
+                    DispatchSpawn( npc )
+                    npc.AssaultPoint( Player_SpawnPoint_Voper )
+                    npc.AssaultSetFightRadius( 10000 )
+                    npc.AssaultSetGoalRadius( 1000 )
+                    //npc.SetScriptName( "phase3_ents" )
+                    npc.TakeWeaponNow("mp_weapon_r97")
+                    npc.GiveWeapon( "mp_weapon_alternator_smg", ["super"] )
+                    wait 0.1
+                    thread SuperSpectre_WarpFall( npc )
+                    wait 0.5
+                    }
+
+                for (; ;) 
+                {
+                    if ( GetEntArrayByScriptName( "phase3_ents" ).len() == 0)
+                    {
+                        waves++
+                        PassWaves++
+                        break
+                    }
+
+                    wait 0.1
+                }
+            }
+
+            else if  ( PassWaves == 1 )
+            {
+                PassWaves++
+                int ViperMinHp = viper.GetHealth() - 25000
+                viper.ClearInvulnerable()
+                EmitSoundOnEntity( viper, "diag_sp_bossFight_STS676_36_01_imc_viper" )
+
+                viper.ClearInvulnerable()
+
+                for (; ;) 
+                {
+                    if ( viper.GetHealth() < ViperMinHp)
+                    {
+                        PassWaves = 0
+                        break
+                    }
+                    wait 0.1
+
+                    //wait 20
+                    ////int ViperMinHealth = (viper.GetHealth() - 25000)
+                    ////PassWaves = 2
+                    ////for (; ;) {
+                    ////if (viper.GetHealth() == ViperMinHealth){
+                    //PassWaves = 0
+                    ////break
+                    ////}
+                    ////wait 0.1
+                    ////}
+                }
+            }
+        }
+    }
+
+    count = GetPlayerArray().len() + 1
+    if ( count >= 7 )
+    {
+        int count = 7
+        wait 0.1
+    }
+    wait 0.1
+}
+*/
+
+// new-adding version
+void function UnlimitedSpawn()
+{
+
+}
+
 void function PhaseBackThink()
 {
     while( IsValid( file.viperShip.model ) && file.fighting )
@@ -779,6 +1387,8 @@ void function PhaseBack( entity player )
         vector angles = player.GetAngles()
         PhaseShift( player, 0.1, 1 )
         player.SetAngles( angles )
+
+        SendHudMessage(player, "超出了战斗区域！" , -1, -0.35, 255, 255, 0, 255, 0, 3, 0)
     }
 
     wait 0.6
@@ -832,7 +1442,7 @@ void function RocketFireThink()
 //                                    viper logic                                                                        //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void function GiveViperLoadout( entity viper )
+void function GiveViperLoadout( entity viper, bool ignoreAnim = false )
 {
     TakeAllWeapons( viper )
 
@@ -840,6 +1450,7 @@ void function GiveViperLoadout( entity viper )
     viper.GiveOffhandWeapon( "mp_titanweapon_dumbfire_rockets",0, [ "burn_mod_titan_dumbfire_rockets", "fd_twin_cluster" ] )
     viper.GiveOffhandWeapon( "mp_titanability_tether_trap",2, [ "fd_explosive_trap" ] )
 
+    if ( !ignoreAnim )
         viper.Anim_Play( "s2s_viper_flight_move_idle" )
 }
 void function GiveViperLoadoutRockets( entity viper )
@@ -1059,16 +1670,18 @@ void function Behavior_ViperDeathAnimThread( ShipStruct ship )
 		EmitSoundOnEntity( player, "diag_sp_maltaDeck_STS374_01_01_mcor_bt" )
 }
 
-void function SonarTitan(entity player, int duration)
+void function SonarTitan(entity player, float duration, float delay = 0)
 {
-#if SERVER
-    float dur = duration.tofloat()
-	StatusEffect_AddTimed( player, eStatusEffect.sonar_detected, 1.0, dur, 0.0 )
+    player.EndSignal( "OnDestroy" )
+
+    wait delay
+	//StatusEffect_AddTimed( player, eStatusEffect.sonar_detected, 1.0, duration, 0.0 )
     Highlight_SetEnemyHighlight( player, "enemy_sonar" )
+
     wait duration
+
     if (Hightlight_HasEnemyHighlight(player, "enemy_sonar"))
         Highlight_ClearEnemyHighlight( player )
-#endif
 }
 
 void function DefaultEventCallbacks_Viper( ShipStruct ship, int val )
