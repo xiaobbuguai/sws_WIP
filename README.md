@@ -2,7 +2,10 @@
 
 Maintained by [DBmaoha](https://github.com/DBmaoha), for saving own server using(and modified) mods.
 
-Might be a bad idea to store all your mods in this repo, just want to make our modified changes easier to find. If there's a need I can cut off this repository, please [Sending Issue](https://github.com/xiaobbuguai/sws_WIP/issues) to let me know.
+It's a bad idea to store all your mods in this repo, my purpose is to make our modified changes easier to find. 
+
+If there's a need I can cut off this repository, please [Sending Issues](https://github.com/xiaobbuguai/sws_WIP/issues) to let me know.
+
 
 ## MODS USING
 
