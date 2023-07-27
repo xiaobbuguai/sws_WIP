@@ -16,6 +16,31 @@ struct TimeMeter
     float start
 }
 
+// taken from _ai_pilots.gnut. make it a in-file struct so it doesn't conflict with extra_ai_spawner
+struct SarahPilotStruct
+{
+	bool isValid = false
+
+	int team
+	int spawnflags
+	float accuracy
+	float proficieny
+	float health
+	float physDamageScale
+	string weapon
+	string squadName
+
+	asset modelAsset
+	string title
+
+	bool isInvulnerable
+}
+
+struct
+{
+    table<entity, SarahPilotStruct> sarahNPCPilotTable
+} file
+
 void function placeHomesteadObjects()
 {
      #if SERVER
@@ -709,24 +734,30 @@ void function SarahBecomesTitan( entity pilot, entity titan )
 	Assert( titan.IsTitan() )
 
 	entity titanSoul = titan.GetTitanSoul()
+    // make it a in-file struct so it don't conflict with extra_ai_spawner
+    if ( !( titanSoul in file.sarahNPCPilotTable ) )
+    {
+        SarahPilotStruct newStruct
+        file.sarahNPCPilotTable[ titanSoul ] <- newStruct
+    }
 
-	titanSoul.soul.seatedNpcPilot.isValid				= true
+	file.sarahNPCPilotTable[ titanSoul ].isValid				= true
 
-	titanSoul.soul.seatedNpcPilot.team 					= pilot.GetTeam()
-	titanSoul.soul.seatedNpcPilot.spawnflags 			= 0
-	titanSoul.soul.seatedNpcPilot.accuracy 				= expect string( pilot.kv.AccuracyMultiplier ).tofloat()
-	titanSoul.soul.seatedNpcPilot.proficieny 			= expect string( pilot.kv.WeaponProficiency ).tofloat()
-	titanSoul.soul.seatedNpcPilot.health 				= expect string( pilot.kv.max_health ).tofloat()
-	titanSoul.soul.seatedNpcPilot.physDamageScale 		= expect string( pilot.kv.physdamagescale ).tofloat()
-	titanSoul.soul.seatedNpcPilot.weapon 				= pilot.GetMainWeapons()[0].GetWeaponClassName()
-	titanSoul.soul.seatedNpcPilot.squadName 			= expect string( pilot.kv.squadname )
+	file.sarahNPCPilotTable[ titanSoul ].team 					= pilot.GetTeam()
+	file.sarahNPCPilotTable[ titanSoul ].spawnflags 			= 0
+	file.sarahNPCPilotTable[ titanSoul ].accuracy 				= expect string( pilot.kv.AccuracyMultiplier ).tofloat()
+	file.sarahNPCPilotTable[ titanSoul ].proficieny 			= expect string( pilot.kv.WeaponProficiency ).tofloat()
+	file.sarahNPCPilotTable[ titanSoul ].health 				= expect string( pilot.kv.max_health ).tofloat()
+	file.sarahNPCPilotTable[ titanSoul ].physDamageScale 		= expect string( pilot.kv.physdamagescale ).tofloat()
+	file.sarahNPCPilotTable[ titanSoul ].weapon 				= pilot.GetMainWeapons()[0].GetWeaponClassName()
+	file.sarahNPCPilotTable[ titanSoul ].squadName 			= expect string( pilot.kv.squadname )
 
-	titanSoul.soul.seatedNpcPilot.modelAsset 			= pilot.GetModelName()
-	titanSoul.soul.seatedNpcPilot.title 				= pilot.GetTitle()
+	file.sarahNPCPilotTable[ titanSoul ].modelAsset 			= pilot.GetModelName()
+	file.sarahNPCPilotTable[ titanSoul ].title 				= pilot.GetTitle()
 
-	titanSoul.soul.seatedNpcPilot.isInvulnerable		= pilot.IsInvulnerable()
+	file.sarahNPCPilotTable[ titanSoul ].isInvulnerable		= pilot.IsInvulnerable()
 
-	titan.SetTitle( titanSoul.soul.seatedNpcPilot.title )
+	titan.SetTitle( file.sarahNPCPilotTable[ titanSoul ].title )
 
 	// thread __TitanPilotRodeoCounter( titan )
 
@@ -790,13 +821,17 @@ entity function SarahBecomesPilot( entity titan )
 	Assert( titan.IsTitan() )
 
 	entity titanSoul = titan.GetTitanSoul()
-	titanSoul.soul.seatedNpcPilot.isValid = false
+    // make it a in-file struct so it don't conflict with extra_ai_spawner
+    if ( !( titanSoul in file.sarahNPCPilotTable ) ) // not initialized!
+        return
 
-	string weapon 			= titanSoul.soul.seatedNpcPilot.weapon
-	string squadName 		= titanSoul.soul.seatedNpcPilot.squadName
-	asset model 			= titanSoul.soul.seatedNpcPilot.modelAsset
-	string title 			= titanSoul.soul.seatedNpcPilot.title
-	int team 				= titanSoul.soul.seatedNpcPilot.team
+	file.sarahNPCPilotTable[ titanSoul ].isValid = false
+
+	string weapon 			= file.sarahNPCPilotTable[ titanSoul ].weapon
+	string squadName 		= file.sarahNPCPilotTable[ titanSoul ].squadName
+	asset model 			= file.sarahNPCPilotTable[ titanSoul ].modelAsset
+	string title 			= file.sarahNPCPilotTable[ titanSoul ].title
+	int team 				= file.sarahNPCPilotTable[ titanSoul ].team
 	vector origin 			= titan.GetOrigin()
 	vector angles 			= titan.GetAngles()
 	entity pilot 			= CreateNPC( "npc_soldier", team, origin, angles )
@@ -811,14 +846,14 @@ entity function SarahBecomesPilot( entity titan )
 	// NpcPilotSetPetTitan( pilot, titan )
 	// NpcResetNextTitanRespawnAvailable( pilot )
 
-	pilot.kv.spawnflags 			= titanSoul.soul.seatedNpcPilot.spawnflags
-	pilot.kv.AccuracyMultiplier 	= titanSoul.soul.seatedNpcPilot.accuracy
-	pilot.kv.WeaponProficiency 		= titanSoul.soul.seatedNpcPilot.proficieny
-	pilot.kv.health 				= titanSoul.soul.seatedNpcPilot.health
-	pilot.kv.max_health 			= titanSoul.soul.seatedNpcPilot.health
-	pilot.kv.physDamageScale 		= titanSoul.soul.seatedNpcPilot.physDamageScale
+	pilot.kv.spawnflags 			= file.sarahNPCPilotTable[ titanSoul ].spawnflags
+	pilot.kv.AccuracyMultiplier 	= file.sarahNPCPilotTable[ titanSoul ].accuracy
+	pilot.kv.WeaponProficiency 		= file.sarahNPCPilotTable[ titanSoul ].proficieny
+	pilot.kv.health 				= file.sarahNPCPilotTable[ titanSoul ].health
+	pilot.kv.max_health 			= file.sarahNPCPilotTable[ titanSoul ].health
+	pilot.kv.physDamageScale 		= file.sarahNPCPilotTable[ titanSoul ].physDamageScale
 
-	if ( titanSoul.soul.seatedNpcPilot.isInvulnerable )
+	if ( file.sarahNPCPilotTable[ titanSoul ].isInvulnerable )
 		pilot.SetInvulnerable()
 
 	titan.SetOwner( pilot )
