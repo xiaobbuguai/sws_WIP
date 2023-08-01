@@ -13,4 +13,7 @@ If there's a need I can cut off this repository, please [Sending Issues](https:/
     - [maps plus](https://northstar.thunderstore.io/package/cat_or_not/maps_plus/)
     - [cat or nots utils](https://northstar.thunderstore.io/package/cat_or_not/cat_or_nots_utils/)
     - [DrivableDropShip](https://northstar.thunderstore.io/package/cat_or_not/DrivableDropShip/)
-    
+
+## MODS REQUIRED
+
+- [Extra AI Spawner](https://github.com/DBmaoha/Super.Mixed.Game/tree/extra-ai-spawner)
