@@ -1,5 +1,3 @@
-# NORTHSTAR STARWISH SERVER USING MODS REPOSITORY
-
 Maintained by [DBmaoha](https://github.com/DBmaoha), for saving own server using(and modified) mods.
 
 It's a bad idea to store all your mods in this repo, my purpose is to make our modified changes easier to find. 
