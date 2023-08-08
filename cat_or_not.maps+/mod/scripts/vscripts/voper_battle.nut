@@ -23,7 +23,16 @@ const vector Player_SpawnPoint_Voper = < -151, 1091, 1490 >
 // voper settings
 const float VOPER_DAMAGE_REDUCTION_SCALE = 0.9
 const int VOPER_MAX_HEALTH = 60000 // 60000 health with 0.9 damage reduction ~= 540000 health
-const float VOPER_DAMAGE_SCALE = 2.5
+const float VOPER_DAMAGE_SCALE = 2.5 // voper deals 2.5x damage to players
+const float ASH_ASSIST_HEALTH_FRAC = 0.5 // lower than
+
+// voper core settings
+const int VOPER_CORE_MAX_BURSTS = 24 // how many rockets voper will fire during one core activation
+const float VOPER_CORE_BURST_INTERVAL = 0.1 // interval between each rocket launch( script tickrate is 10 by default )
+const float VOPER_CORE_ROCKET_HOMING_SPEED_SCALE = 2.0 // homing speed scale for core rocket. the higher, the rocket can be more accurate at close range
+
+// debug
+const bool VOPER_BATTLE_DEBUG = true
 
 struct
 {
@@ -34,6 +43,8 @@ struct
     bool coring = false
 
     entity RespawnShip
+
+    vector origin_ref
 } file
 
 //生成泰坦种类
@@ -65,8 +76,24 @@ void function VoperBattle_Init()
 		"#BOSSNAME_VIPER",								// boss title
 		"毒蛇",											// pilot title. can't use localized string
 		$"models/humans/pilots/pilot_medium_reaper_m.mdl",		// character model, use mp pilot model: pulse blade male
-		BossLoadout_Viper, 				                // loadout function
+		VoperBossTitanSetup,                            // generic loadout function for boss fight titans
 		1,												// skin index, unsure
+		10												// decal index
+	)
+
+    ExtraSpawner_RegisterToBossTitanSpawnList
+	(
+		"ash_boss",										// spawn name. unique
+		"Ash",											// boss name
+		"titan_stryder_leadwall",						// setFile
+		"npc_titan_stryder_leadwall_bounty",			// aiSet, bigger overlay
+		"behavior_titan_shotgun",						// titan behavior
+		"execution_ronin_prime",						// executionRef
+		"#BOSSNAME_ASH",								// boss title
+		"艾許",											// pilot title. can't use localized string
+		$"models/Humans/heroes/imc_hero_ash.mdl",		// character model
+		VoperBossTitanSetup, 					        // generic loadout function for boss fight titans
+		6,												// skin index
 		10												// decal index
 	)
 
@@ -74,7 +101,7 @@ void function VoperBattle_Init()
     AddClientCommandCallback( "voper_battle", CC_ForceStartVoperBattle )
 }
 
-void function BossLoadout_Viper( entity titan )
+void function VoperBossTitanSetup( entity titan )
 {
     // generic loadout function for bosses that has no pilot model for mp
 	entity soul = titan.GetTitanSoul()
@@ -97,6 +124,9 @@ bool function CC_ForceStartVoperBattle( entity player, array<string> args )
 		return false;
 	}
 
+    if ( file.fighting )
+        return true
+
     thread StartVoperBattle( 0 )
     return true
 }
@@ -111,54 +141,54 @@ void function StartVoperBattle( int varient )
 
     thread TEAM_Player()
 
-    vector origin_ref = <3352, -4226, 3267>
+    file.origin_ref = <3352, -4226, 3267>
     if ( varient == 0 )
     {
-        origin_ref = <985, 1138, 1604>
+        file.origin_ref = <985, 1138, 1604>
 
         switch( GetMapName() )
         {
             case "mp_angel_city": //天使城
-                origin_ref=< 0, 0, 0 >
+                file.origin_ref=< 0, 0, 0 >
                 break;
 
             case "mp_black_water_canal": //黑水运河
-                origin_ref=< 400, -1250, 600 >
+                file.origin_ref=< 400, -1250, 600 >
                 break;
 
             case "mp_colony02": //殖民地
-                origin_ref=< 800, 5115, 310 >
+                file.origin_ref=< 800, 5115, 310 >
                 break;
 
             case "mp_drydock": //干坞
-                origin_ref=< 3000, -3250, 800 >
+                file.origin_ref=< 3000, -3250, 800 >
                 break;
 
             case "mp_eden": //伊甸
-                origin_ref=< 4600, 500, 500 >
+                file.origin_ref=< 4600, 500, 500 >
                 break;
 
             case "mp_thaw": //系外行星
-                origin_ref=< 2000, -1498, 0 >
+                file.origin_ref=< 2000, -1498, 0 >
                 break;
 
             case "mp_glitch": //异常
-                origin_ref=< 3350, 100, 550 >
+                file.origin_ref=< 3350, 100, 550 >
                 break;
 
             case "mp_relic02": //遗迹
-                origin_ref=< 5635, -3527, 380 >
+                file.origin_ref=< 5635, -3527, 380 >
                 break;
             case "mp_wargames": //战争游戏
-                origin_ref=< 2600, 1200, 300 >
+                file.origin_ref=< 2600, 1200, 300 >
                 break;
 
             case "mp_homestead": //家园
-                origin_ref=< 5279, 1716, 600 >
+                file.origin_ref=< 5279, 1716, 600 >
                 break;
         }
     }
-    file.ref = CreateScriptMover( origin_ref, < 0, 90, 0 > )
+    file.ref = CreateScriptMover( file.origin_ref, < 0, 90, 0 > )
 
     vector delta = <100,0,5000>
     LocalVec origin
@@ -283,6 +313,15 @@ void function TEAM_Player(){//将玩家全部切换至反抗军
 
 void function RunJetSfx( entity viper )
 {
+    PlayLoopFXOnEntity( $"P_xo_jet_fly_large", viper, "FX_L_BOT_THRUST", null, null, ENTITY_VISIBLE_TO_EVERYONE )
+    PlayLoopFXOnEntity( $"P_xo_jet_fly_large", viper, "FX_R_BOT_THRUST", null, null, ENTITY_VISIBLE_TO_EVERYONE )
+    PlayLoopFXOnEntity( $"P_xo_jet_fly_small", viper, "FX_L_TOP_THRUST", null, null, ENTITY_VISIBLE_TO_EVERYONE )
+    PlayLoopFXOnEntity( $"P_xo_jet_fly_small", viper, "FX_R_TOP_THRUST", null, null, ENTITY_VISIBLE_TO_EVERYONE )
+}
+
+/*
+void function RunJetSfx( entity viper )
+{
     EndSignal( viper, "OnDeath" )
     EndSignal( viper, "OnDestroy" )
 
@@ -296,6 +335,7 @@ void function RunJetSfx( entity viper )
         wait 60
     }
 }
+*/
 
 void function StartIntro( ShipStruct viperShip, int varient )
 {
@@ -335,8 +375,8 @@ void function StartIntro_BossViper( entity viper, int varient )
     viper.EndSignal( "OnDeath" )
     viper.EndSignal( "OnDestroy" )
 
-    WaitSignal( viper, "BossTitanIntroEnded" ) // intro reaches combat point
     EmitSoundOnEntity( viper, "music_s2s_14_titancombat" )
+    WaitSignal( viper, "BossTitanIntroEnded" ) // intro reaches combat point
 
     // viper mover setup
     vector delta = <100,0,5000>
@@ -391,7 +431,8 @@ void function StartIntro_BossViper( entity viper, int varient )
         thread correctViper()
     // viper mover setup ends
 
-    thread CoreFire()
+    //thread CoreFire()
+    thread RocketFireThink()
 
     thread ShipIdleAtTargetPos( viperShip, WorldToLocalOrigin( file.ref.GetOrigin() + < -500, 0, 200 > ) , <100,500,0> )
     link = viper.GetParent()
@@ -402,7 +443,7 @@ void function StartIntro_BossViper( entity viper, int varient )
     if ( varient == 0 )
     {
         thread Phase1Think()
-        thread PhaseBackThink() 
+        //thread PhaseBackThink() 
     }
 }
 
@@ -487,6 +528,20 @@ void function DelayedRespawnPlayer( entity player )
     DoRespawnPlayer( player, null )
 }
 
+array<entity> function ViperGetTargetPlayers()
+{
+    array<entity> validTargets
+    foreach ( entity player in GetPlayerArray_Alive() )
+    {
+        if ( player.IsTitan() )
+            validTargets.append( player )
+    }
+    if ( validTargets.len() == 0 ) // no valid targets!!
+        validTargets = GetPlayerArray_Alive()
+
+    return validTargets
+}
+
 void function Phase1Think()
 {
     // SmokescreenStruct smoke
@@ -510,9 +565,13 @@ void function Phase1Think()
     int team = file.viperShip.model.GetTeam()
     //vector origin = GetClosest2D( SpawnPoints_GetDropPod(), <1200, 1145, 1380>, 1000000000 ).GetOrigin()
 
-    int count = 10 //GetPlayerArray().len()
+    int count = GetPlayerArray().len()
     if ( count > 10 )
         count = 10
+
+    #if VOPER_BATTLE_DEBUG
+        count = 10
+    #endif
 
     /*
     foreach( string NpcName in ["npc_super_spectre"] )
@@ -541,14 +600,14 @@ void function Phase1Think()
 
     for( int x = 0; x < count; x++ )
     {
-        while ( GetPlayerArray_Alive().len() == 0 ) // no player alive!
+        while ( ViperGetTargetPlayers().len() == 0 ) // no target valid
         {
             // keep waiting
             WaitFrame()
         }
 
-        array<entity> alivePlayers = GetPlayerArray_Alive()
-        entity luckyPlayer = alivePlayers[ RandomInt( alivePlayers.len() ) ]
+        array<entity> validTargets = ViperGetTargetPlayers()
+        entity luckyPlayer = validTargets[ RandomInt( validTargets.len() ) ]
 
         vector origin = luckyPlayer.GetOrigin()
         vector angles = < 0, luckyPlayer.GetAngles().y, 0 > // npcs never rotates x&z angle
@@ -564,7 +623,8 @@ void function Phase1Think()
         wait 0.7
     }
 
-    wait 0.1
+    // needs to wait for reaper warp
+    wait 6.0
 
     for(;;)
     {
@@ -585,7 +645,7 @@ void function Phase1Think()
     }
 
     thread Phase2Think()
-    thread RocketFireThink()
+    //thread RocketFireThink()
 }
 
 void function VoperBattle_ReaperHandler_Phase1( entity reaper )
@@ -595,7 +655,7 @@ void function VoperBattle_ReaperHandler_Phase1( entity reaper )
     // add script name for handling phases
     reaper.SetScriptName( "phase1_ents" )
     // highlight
-    thread SonarTitan( reaper, 3000 )
+    thread SonarEnemyForever( reaper )
 
     // update health
     reaper.SetMaxHealth( reaper.GetMaxHealth() * 2 )
@@ -604,18 +664,22 @@ void function VoperBattle_ReaperHandler_Phase1( entity reaper )
 
 void function Phase2Think()
 {
-    foreach( entity player in GetPlayerArray() )
-		EmitSoundOnEntity( player, "diag_sp_viperchat_STS666_01_01_mcor_viper" )
+	EmitSoundOnEntity( file.viper, "diag_sp_viperchat_STS666_01_01_mcor_viper" )
+    MpBossTitan_DelayNextBossRandomLine( file.viper ) // delay viper's next random dialogue
 
     float activatorTime = Time()
 
     entity npc
     int team = file.viperShip.model.GetTeam()
 
-    int count = 7 //GetPlayerArray().len()
+    int count = GetPlayerArray().len()
 
     if ( count >= 7 )
         count = 7
+
+    #if VOPER_BATTLE_DEBUG
+        count = 7
+    #endif
 
     foreach( entity player in GetPlayerArray() )
     {
@@ -666,14 +730,14 @@ void function Phase2Think()
 
     for( int x = 0; x < count; x++ )
     {
-        while ( GetPlayerArray_Alive().len() == 0 ) // no player alive!
+        while ( ViperGetTargetPlayers().len() == 0 ) // no target valid
         {
             // keep waiting
             WaitFrame()
         }
 
-        array<entity> alivePlayers = GetPlayerArray_Alive()
-        entity luckyPlayer = alivePlayers[ RandomInt( alivePlayers.len() ) ]
+        array<entity> validTargets = ViperGetTargetPlayers()
+        entity luckyPlayer = validTargets[ RandomInt( validTargets.len() ) ]
 
         vector origin = luckyPlayer.GetOrigin()
         vector angles = < 0, luckyPlayer.GetAngles().y, 0 > // npcs never rotates x&z angle
@@ -688,6 +752,9 @@ void function Phase2Think()
 
         wait 1.5
     }
+
+    // needs to wait for titan hotdrop
+    wait 6.0
 
     for(;;)
     {
@@ -722,7 +789,7 @@ void function VoperBattle_TitanHandler_Phase2( entity titan )
     // script name for handling spawns
     titan.SetScriptName( "phase2_ents" )
     // highlight
-    thread SonarTitan( titan, 3000, 5 )
+    thread SonarEnemyForever( titan, 5 )
 
     // update health
     titan.SetMaxHealth( titan.GetMaxHealth() * 2 )
@@ -738,7 +805,9 @@ void function Phase3Think()
     int waves = 0
 
     thread UnlimitedSpawn()
-    file.viperShip.model.SetHealth( VOPER_MAX_HEALTH )
+    // below are modified
+    //file.viperShip.model.SetHealth( VOPER_MAX_HEALTH )
+    thread BossAshAssistThink()
 
     foreach( entity player in GetPlayerArray() )
     {
@@ -766,8 +835,21 @@ void function Phase3Think()
     AddTeamScore( TEAM_IMC, 10000 )
 }
 
+void function BossAshAssistThink()
+{
+    while ( IsValid( file.viperShip.model ) )
+    {
+        if ( GetHealthFrac( file.viperShip.model ) <= ASH_ASSIST_HEALTH_FRAC )
+        {
+            thread ExtraSpawner_SpawnBossTitan( file.origin_ref, <0,90,0>, TEAM_IMC, "ash_boss", TITAN_MERC )
+            return
+        }
+        WaitFrame()
+    }
+}
+
 // I don't want to do anything based on this.
-/*
+#if VOPER_BATTLE_DEBUG
 void function UnlimitedSpawn()
 {
     entity npc
@@ -1020,7 +1102,6 @@ if (IsValid( viper ) && IsAlive( viper )){
 }
 }
 }
-*/
 
 // FORMATTED VERSION
 /*
@@ -1333,12 +1414,15 @@ void function UnlimitedSpawn()
     wait 0.1
 }
 */
-
+#else
 // new-adding version
+// WIP
 void function UnlimitedSpawn()
 {
 
 }
+#endif
+
 
 void function PhaseBackThink()
 {
@@ -1417,14 +1501,19 @@ void function AnimateViper( entity viper )
 
     for(;;)
     {
-        WaitFrame()
+        //WaitFrame()
 
         if ( file.coring )
+        {
+            WaitFrame() // prevent loop stucking!
             continue
+        }
 
+        // rework here: prevent idle animation keep blend-in and out
         viper.Anim_Play( "s2s_viper_flight_move_idle" )
+        WaittillAnimDone( viper )
 
-        WaitFrame()
+        //WaitFrame()
     }
 }
 
@@ -1432,9 +1521,13 @@ void function RocketFireThink()
 {
     while( IsValid( file.viperShip.model ) && file.fighting )
     {
-        if ( RandomIntRange( 0, 15 ) == 1 )
-            waitthread CoreFire()
-        wait 1
+        // rework here...
+        //if ( RandomIntRange( 0, 15 ) == 1 )
+        //    waitthread CoreFire()
+        //wait 1
+
+        waitthread CoreFire()
+        wait RandomFloatRange( 5.0, 10.0 )
     }
 }
 
@@ -1450,8 +1543,9 @@ void function GiveViperLoadout( entity viper, bool ignoreAnim = false )
     viper.GiveOffhandWeapon( "mp_titanweapon_dumbfire_rockets",0, [ "burn_mod_titan_dumbfire_rockets", "fd_twin_cluster" ] )
     viper.GiveOffhandWeapon( "mp_titanability_tether_trap",2, [ "fd_explosive_trap" ] )
 
-    if ( !ignoreAnim )
-        viper.Anim_Play( "s2s_viper_flight_move_idle" )
+    // modified: remove meaningless idle anim call
+    //if ( !ignoreAnim )
+    //    viper.Anim_Play( "s2s_viper_flight_move_idle" )
 }
 void function GiveViperLoadoutRockets( entity viper )
 {
@@ -1466,8 +1560,8 @@ void function CoreFire()
 {
     GiveViperLoadoutRockets( file.viper )
 
-    entity target = ViperGetEnemy( file.viper )
-    WeaponViperAttackParams	viperParams = ViperSwarmRockets_SetupAttackParams( target.GetOrigin() - <0,0,200>, file.ref )
+    //entity target = ViperGetEnemy( file.viper )
+    //WeaponViperAttackParams	viperParams = ViperSwarmRockets_SetupAttackParams( target.GetOrigin() - <0,0,200>, file.ref )
     // viperParams.target = target
 
     file.viperShip.mover.NonPhysicsMoveTo( file.viper.GetOrigin(), 1,0,0 )
@@ -1475,16 +1569,33 @@ void function CoreFire()
     foreach( entity player in GetPlayerArray() )
         EmitSoundOnEntityOnlyToPlayer( player, player, "northstar_rocket_warning" )
 
+    file.coring = true // mark as we're firing core, so idle animation don't override
+    file.viper.Anim_Stop()
     file.viper.Anim_Play( "s2s_viper_flight_core_idle" )
 
-    for( int x = 0; x < 20; x++ )
+    int validShots
+    //for( int x = 0; x < VOPER_CORE_MAX_BURSTS; x++ )
+    while ( validShots <= VOPER_CORE_MAX_BURSTS )
     {
-        OnWeaponScriptPrimaryAttack_ViperSwarmRockets_s2s( file.viper.GetActiveWeapon(), viperParams )
+        entity target = ViperGetEnemy( file.viper )
+        if ( target == file.ref ) // using ref as target! meaning we can't find target
+        {
+            WaitFrame()
+            continue
+        }
+        WeaponViperAttackParams	viperParams = ViperSwarmRockets_SetupAttackParams( target.GetOrigin() - <0,0,200>, file.ref )
+        // reworked... really should make them homing to player
+        //OnWeaponScriptPrimaryAttack_ViperSwarmRockets_s2s( file.viper.GetActiveWeapon(), viperParams )
+        OnWeaponScriptPrimaryAttack_ViperSwarmRockets_s2s( file.viper.GetActiveWeapon(), viperParams, target, VOPER_CORE_ROCKET_HOMING_SPEED_SCALE )
+        file.viper.Anim_Stop()
         file.viper.Anim_Play( "s2s_viper_flight_core_idle" )
-        wait 0.01
+        validShots += 1
+        wait VOPER_CORE_BURST_INTERVAL
     }
 
     wait 1
+
+    file.coring = false // remove core statement and start idle animation
 
     GiveViperLoadout( file.viper )
 }
@@ -1614,8 +1725,8 @@ void function Behavior_ViperDeathAnimThread( ShipStruct ship )
 {
     file.fighting = false
 
-    foreach( entity player in GetPlayerArray() )
-		EmitSoundOnEntity( player, "diag_sp_gibraltar_STS102_13_01_imc_grunt1" )
+	EmitSoundOnEntity( file.viper, "diag_sp_gibraltar_STS102_13_01_imc_grunt1" )
+    MpBossTitan_DelayNextBossRandomLine( file.viper ) // delay viper's next random dialogue
 
 	Signal( ship, "FakeDeath" )
 	EndSignal( ship, "FakeDestroy" )
@@ -1666,8 +1777,8 @@ void function Behavior_ViperDeathAnimThread( ShipStruct ship )
     }
 	mover.Destroy()
 
-    foreach( entity player in GetPlayerArray() )
-		EmitSoundOnEntity( player, "diag_sp_maltaDeck_STS374_01_01_mcor_bt" )
+	EmitSoundOnEntity( file.viper, "diag_sp_maltaDeck_STS374_01_01_mcor_bt" )
+    MpBossTitan_DelayNextBossRandomLine( file.viper ) // delay viper's next random dialogue
 }
 
 void function SonarTitan(entity player, float duration, float delay = 0)
@@ -1675,13 +1786,26 @@ void function SonarTitan(entity player, float duration, float delay = 0)
     player.EndSignal( "OnDestroy" )
 
     wait delay
-	//StatusEffect_AddTimed( player, eStatusEffect.sonar_detected, 1.0, duration, 0.0 )
+	//StatusEffect_AddTimed( player, eStatusEffect.sonar_detected, 1.0, duration, 0.0 ) // this overwrites highlight context...
     Highlight_SetEnemyHighlight( player, "enemy_sonar" )
 
     wait duration
 
     if (Hightlight_HasEnemyHighlight(player, "enemy_sonar"))
         Highlight_ClearEnemyHighlight( player )
+}
+
+void function SonarEnemyForever( entity npc, float delay = 0 )
+{
+    npc.EndSignal( "OnDeath" )
+    npc.EndSignal( "OnDestroy" )
+
+    wait delay
+    while ( true )
+    {
+        Highlight_SetEnemyHighlight( npc, "enemy_sonar" )
+        npc.WaitSignal( "StopPhaseShift" ) // restart highlight after entity phase!
+    }
 }
 
 void function DefaultEventCallbacks_Viper( ShipStruct ship, int val )

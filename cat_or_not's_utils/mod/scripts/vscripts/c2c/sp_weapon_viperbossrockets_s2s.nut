@@ -44,7 +44,9 @@ var function ScriptOnlyWeapon( entity weapon, WeaponPrimaryAttackParams attackPa
 }
 
 #if SERVER
-var function OnWeaponScriptPrimaryAttack_ViperSwarmRockets_s2s( entity weapon, WeaponViperAttackParams viperParams )
+// reworked... really should make them homing to player
+//var function OnWeaponScriptPrimaryAttack_ViperSwarmRockets_s2s( entity weapon, WeaponViperAttackParams viperParams )
+var function OnWeaponScriptPrimaryAttack_ViperSwarmRockets_s2s( entity weapon, WeaponViperAttackParams viperParams, entity target, float homingSpeedScalar = 1.0, float missileSpeedScalar = 1.0 )
 {
 	#if DEV
 		if ( GetBugReproNum() == 101 )
@@ -61,7 +63,11 @@ var function OnWeaponScriptPrimaryAttack_ViperSwarmRockets_s2s( entity weapon, W
 	entity missile = weapon.FireWeaponMissile( attackParams.pos, attackParams.dir, VIPERMISSILE_MISSILE_SPEED_SCALE_BOSSINTRO, damageTypes.largeCaliberExp, damageTypes.largeCaliberExp, false, PROJECTILE_NOT_PREDICTED )
 	InitMissile( missile, owner )
 
-	thread HomingMissileThink( weapon, missile, viperParams )
+	//thread HomingMissileThink( weapon, missile, viperParams )
+	// reworked... really should make them homing to player
+	//vector offset = < 0, 0, 0 >
+	//offset.z = fabs( target.EyePosition().z - target.GetOrigin().z ) / 2
+	thread HomingMissileThinkTarget( weapon, missile, target, < 0, 0, 0 >, homingSpeedScalar )
 }
 
 void function OnWeaponScriptAttack_s2s_BossIntro( entity weapon, int burstIndex, entity target, vector offset, float homingSpeedScalar = 1.0, float missileSpeedScalar = 1.0 )
@@ -110,7 +116,7 @@ void function InitMissileBossIntro( entity missile, entity owner )
 WeaponPrimaryAttackParams function PlayViperMissileFXHigh( entity owner, entity weapon, int burstIndex, vector origin )
 {
 	int fxId 			= GetParticleSystemIndex( $"wpn_mflash_xo_rocket_shoulder" )
-	string attachment 	= IsEven( burstIndex ) ? "SCRIPT_POD_L" : "SCRIPT_POD_R"
+	string attachment 	= IsEven( burstIndex ) ? "POD_L" : "POD_R" // "SCRIPT_POD_L" : "SCRIPT_POD_R"
 	int attachId 		= owner.LookupAttachment( attachment )
 
 	int adjustIndex = burstIndex
@@ -144,7 +150,7 @@ WeaponPrimaryAttackParams function PlayViperMissileFXHigh( entity owner, entity 
 WeaponPrimaryAttackParams function PlayViperMissileFX( entity owner, entity weapon, int burstIndex, vector origin )
 {
 	int fxId 			= GetParticleSystemIndex( $"wpn_mflash_xo_rocket_shoulder" )
-	string attachment 	= IsEven( burstIndex ) ? "SCRIPT_POD_R" : "SCRIPT_POD_L"
+	string attachment 	= IsEven( burstIndex ) ? "POD_R" : "POD_L" // "SCRIPT_POD_R" : "SCRIPT_POD_L"
 	int attachId 		= owner.LookupAttachment( attachment )
 
 	int adjustIndex = burstIndex
@@ -197,7 +203,7 @@ void function HomingMissileThinkTarget( entity weapon, entity missile, entity ta
 	float timeMax = 3
 	float timeStart = Time()
 	float speedMin = 75
-	float speedMax = 150
+	float speedMax = 150 * homingSpeedScalar
 
 	while( 1 )
 	{
