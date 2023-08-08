@@ -48,7 +48,7 @@ const float VOPER_CORE_BURST_INTERVAL = 0.1 // interval between each rocket laun
 const float VOPER_CORE_ROCKET_HOMING_SPEED_SCALE = 2.0 // homing speed scale for core rocket. the higher, the rocket can be more accurate at close range
 
 // debug
-const bool VOPER_BATTLE_DEBUG = true
+const bool VOPER_BATTLE_DEBUG = false
 
 struct
 {
