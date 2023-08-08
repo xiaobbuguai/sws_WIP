@@ -34,7 +34,7 @@ const float SARAH_QUEST_VOPER_HEALTH_FRAC = 0.3 // game will start SarahDefenseT
 // npc health settings
 const float INFANTRY_HEALTH_SCALE = 2.0
 const float TITAN_HEALTH_SCALE = 1.5
-const float REAPER_HEALTH_SCALE = 1.5
+const float REAPER_HEALTH_SCALE = 2.0
 
 // voper settings
 const float VOPER_DAMAGE_REDUCTION_SCALE = 0.8
@@ -43,12 +43,14 @@ const float VOPER_DAMAGE_SCALE = 2.5 // voper deals 2.5x damage to players
 const float ASH_ASSIST_HEALTH_FRAC = 0.5 // lower than
 
 // voper core settings
-const int VOPER_CORE_MAX_BURSTS = 24 // how many rockets voper will fire during one core activation
+const float VOPER_CORE_MIN_COOLDOWN = 10.0 // voper will have minium of 10s cooldown for their core ability
+const float VOPER_CORE_MAX_COOLDOWN = 30.0 // voper will have maxnium of 30s cooldown for their core ability
+const int VOPER_CORE_MAX_BURSTS = 32 // how many rockets voper will fire during one core activation
 const float VOPER_CORE_BURST_INTERVAL = 0.1 // interval between each rocket launch( script tickrate is 10 by default )
 const float VOPER_CORE_ROCKET_HOMING_SPEED_SCALE = 2.0 // homing speed scale for core rocket. the higher, the rocket can be more accurate at close range
 
 // debug
-const bool VOPER_BATTLE_DEBUG = false
+const bool VOPER_BATTLE_DEBUG = true
 
 struct
 {
@@ -223,7 +225,11 @@ void function StartVoperBattle( int varient )
 	MpBossTitan_SetDamageReductionScale( viper, VOPER_DAMAGE_REDUCTION_SCALE )
     viper.GetOffhandWeapon( OFFHAND_EQUIPMENT ).AllowUse( false ) // disable core ability, we use scripted titan core weapon
 
-    viper.SetMaxHealth( VOPER_MAX_HEALTH )
+    #if VOPER_BATTLE_DEBUG
+        viper.SetMaxHealth( 30000 )
+    #else
+        viper.SetMaxHealth( VOPER_MAX_HEALTH )
+    #endif // VOPER_BATTLE_DEBUG
     viper.SetHealth( viper.GetMaxHealth() )
 	viper.SetNoTarget( true )
 	viper.SetNoTargetSmartAmmo( false )
@@ -365,7 +371,11 @@ void function StartIntro_BossViper( entity viper, int varient )
 
     if ( varient == 0 )
     {
-        thread Phase1Think()
+        #if VOPER_BATTLE_DEBUG
+            thread Phase3Think()
+        #else
+            thread Phase1Think()
+        #endif // VOPER_BATTLE_DEBUG
         //thread PhaseBackThink() 
     }
 }
@@ -636,40 +646,42 @@ void function UnlimitedSpawn()
         }
 
         // wave
-        if ( runWaveSpawn )
-        {
-            switch ( PassWaves )
+        #if !VOPER_BATTLE_DEBUG
+            if ( runWaveSpawn )
             {
-                case 1: // first wave
-                    // wave type: npc spawn
-                    
-                    // start wave!
-                    VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_22_01_imc_viper" )
-                    voper.SetInvulnerable()
-                    thread VoperBattle_GenericSpecialistSquadSpawn( "phase3_ents", 5, "npc_soldier", "npc_soldier_shield_captain", 200 ) // 5 shield captain squad
-                    thread VoperBattle_GenericReaperSpawn( "phase3_ents", 4 ) // 4 tick reapers
-                    thread VoperBattle_GenericTitanSpawn( "phase3_ents", 3 ) // 3 npc titans
-                    // calculate wave points. all titans + all reapers + half of infantries
-                    int wavePoints = ( ( WAVE_POINTS_PER_INFANTRY * SQUAD_SIZE * 5 ) / 2 ) + WAVE_POINTS_PER_REAPER * 5 + WAVE_POINTS_PER_TITAN * 3
-                    // wait for required spawn, no timeout
-                    waitthread WaitForWaveTimeout( "phase3_ents", wavePoints, -1 ) // -1 means no timeout
-                    break
+                switch ( PassWaves )
+                {
+                    case 1: // first wave
+                        // wave type: npc spawn
+                        
+                        // start wave!
+                        VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_22_01_imc_viper" )
+                        voper.SetInvulnerable()
+                        thread VoperBattle_GenericSpecialistSquadSpawn( "phase3_ents", 5, "npc_soldier", "npc_soldier_shield_captain", 200 ) // 5 shield captain squad
+                        thread VoperBattle_GenericReaperSpawn( "phase3_ents", 4 ) // 4 tick reapers
+                        thread VoperBattle_GenericTitanSpawn( "phase3_ents", 3 ) // 3 npc titans
+                        // calculate wave points. all titans + all reapers + half of infantries
+                        int wavePoints = ( ( WAVE_POINTS_PER_INFANTRY * SQUAD_SIZE * 5 ) / 2 ) + WAVE_POINTS_PER_REAPER * 5 + WAVE_POINTS_PER_TITAN * 3
+                        // wait for required spawn, no timeout
+                        waitthread WaitForWaveTimeout( "phase3_ents", wavePoints, -1 ) // -1 means no timeout
+                        break
 
-                case 2: // second wave
-                    // wave type: viper health
-                    delayBeforeNextWave = 5.0 // next wave delay 
+                    case 2: // second wave
+                        // wave type: viper health
+                        delayBeforeNextWave = 5.0 // next wave delay 
 
-                    // start wave!
-                    voper.ClearInvulnerable()
-                    VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_36_01_imc_viper" )
-                    waitthread WaitForVoperHealthLossPercentage( 0.1 ) // wait for viper loses 10% of health
-                    break
+                        // start wave!
+                        voper.ClearInvulnerable()
+                        VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_36_01_imc_viper" )
+                        waitthread WaitForVoperHealthLossPercentage( 0.1 ) // wait for viper loses 10% of health
+                        break
 
-                default: // reach max wave spawns
-                    PassWaves = 0 // start from first wave
-                    break
+                    default: // reach max wave spawns
+                        PassWaves = 0 // start from first wave
+                        break
+                }
             }
-        }
+        #endif // !VOPER_BATTLE_DEBUG
 
         if ( delayBeforeNextWave > 0 )
             wait delayBeforeNextWave
@@ -781,7 +793,7 @@ void function RocketFireThink()
         //wait 1
 
         waitthread CoreFire()
-        wait RandomFloatRange( 5.0, 10.0 )
+        wait RandomFloatRange( VOPER_CORE_MIN_COOLDOWN, VOPER_CORE_MAX_COOLDOWN )
     }
 }
 
