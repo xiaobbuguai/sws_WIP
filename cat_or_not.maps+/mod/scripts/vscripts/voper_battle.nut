@@ -68,21 +68,6 @@ struct
     table<string, int> pendingWaveTimeouts
 } file
 
-//生成泰坦种类
-const array<string> basic_titan = [
-    "npc_titan_atlas_stickybomb_bounty",
-    "npc_titan_ogre_meteor_bounty",
-    "npc_titan_stryder_sniper_bounty",
-    "npc_titan_stryder_leadwall_bounty",
-    "npc_titan_atlas_tracker_bounty",
-    "npc_titan_ogre_minigun_bounty",
-    "npc_titan_atlas_vanguard_bounty"
-    "npc_titan_stryder_rocketeer_dash_core"
-    "npc_titan_ogre_minigun_boss_fd"
-    "npc_titan_atlas_stickybomb_boss_fd"
-    "npc_titan_vanguard"
-]
-
 void function VoperBattle_Init()
 {
     // add new boss titan
@@ -1289,7 +1274,7 @@ void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int c
 
 void function WaitForWaveTimeout( string waveEntName, int wavePointsNeeded, float maxTimeout )
 {
-    file.pendingWaveTimeouts[ waveEntName ] <- wavePointsNeeded
+    file.pendingWaveTimeouts[ waveEntName ] <- 0
 
     float maxWait = Time() + maxTimeout
     if ( maxTimeout < 0 )
