@@ -20,28 +20,16 @@ global int PassWaves
 
 const vector Player_SpawnPoint_Voper = < -151, 1091, 1490 >
 
-// wave point settings
-const int WAVE_POINTS_PER_INFANTRY = 1 // a infantry unit worth 1 wave point
-const int WAVE_POINTS_PER_TITAN = 10 // a titan unit worth 10 wave point
-const int WAVE_POINTS_PER_REAPER = 5 // a reaper unit woth 5 wave points
-
 // voper
 const int VOPER_TEAM = TEAM_IMC
-// voper health settings
-const float VOPER_MIN_HEALTH_FRAC = 0.03 // viper will keep 3% of health before getting killed
-const float SARAH_QUEST_VOPER_HEALTH_FRAC = 0.3 // game will start SarahDefenseThink() if viper reaches 30% health or lower
-
-// npc health settings
-const float INFANTRY_HEALTH_SCALE = 2.0
-const float TITAN_HEALTH_SCALE = 1.5
-const float REAPER_HEALTH_SCALE = 2.0
-
 // voper settings
 const float VOPER_DAMAGE_REDUCTION_SCALE = 0.8
 const int VOPER_MAX_HEALTH = 90000 // 90000 health with 0.8 damage reduction ~= 450000 health
 const float VOPER_DAMAGE_SCALE = 2.5 // voper deals 2.5x damage to players
-const float ASH_ASSIST_HEALTH_FRAC = 0.5 // lower than
-
+// voper health settings
+const float VOPER_MIN_HEALTH_FRAC = 0.03 // viper will keep 3% of health before getting killed
+const float SARAH_QUEST_VOPER_HEALTH_FRAC = 0.3 // game will start SarahDefenseThink() if viper reaches 30% health or lower
+const float ASH_ASSIST_HEALTH_FRAC = 0.5 // lower than this amount of health will call-in a ash to help
 // voper core settings
 const float VOPER_CORE_MIN_COOLDOWN = 10.0 // voper will have minium of 10s cooldown for their core ability
 const float VOPER_CORE_MAX_COOLDOWN = 30.0 // voper will have maxnium of 30s cooldown for their core ability
@@ -49,8 +37,18 @@ const int VOPER_CORE_MAX_BURSTS = 32 // how many rockets voper will fire during 
 const float VOPER_CORE_BURST_INTERVAL = 0.1 // interval between each rocket launch( script tickrate is 10 by default )
 const float VOPER_CORE_ROCKET_HOMING_SPEED_SCALE = 2.0 // homing speed scale for core rocket. the higher, the rocket can be more accurate at close range
 
+// npc health settings
+const float INFANTRY_HEALTH_SCALE = 2.0
+const float TITAN_HEALTH_SCALE = 1.5
+const float REAPER_HEALTH_SCALE = 2.0
+
+// wave point settings
+const int WAVE_POINTS_PER_INFANTRY = 1 // a infantry unit worth 1 wave point
+const int WAVE_POINTS_PER_TITAN = 10 // a titan unit worth 10 wave point
+const int WAVE_POINTS_PER_REAPER = 5 // a reaper unit woth 5 wave points
+
 // debug
-const bool VOPER_BATTLE_DEBUG = true
+const bool VOPER_BATTLE_DEBUG = false
 
 struct
 {
