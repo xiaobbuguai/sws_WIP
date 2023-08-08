@@ -226,7 +226,7 @@ void function StartVoperBattle( int varient )
     viper.GetOffhandWeapon( OFFHAND_EQUIPMENT ).AllowUse( false ) // disable core ability, we use scripted titan core weapon
 
     #if VOPER_BATTLE_DEBUG
-        viper.SetMaxHealth( 30000 )
+        viper.SetMaxHealth( 2500 )
     #else
         viper.SetMaxHealth( VOPER_MAX_HEALTH )
     #endif // VOPER_BATTLE_DEBUG
@@ -586,39 +586,40 @@ void function UnlimitedSpawn()
         if ( !IsAlive( voper ) ) // voper died before loop!
             return
 
-        // viper health
         bool runWaveSpawn = true // if set to false, it means we won't run wave spawn for this loop
         float delayBeforeNextWave = 0.0
-        switch ( GetHealthFrac( voper ) )
+
+        // viper health
+        float healthFrac = GetHealthFrac( voper )
+        if ( healthFrac <= VOPER_MIN_HEALTH_FRAC ) // viper near death after a wave...
         {
-            case VOPER_MIN_HEALTH_FRAC: // viper near death after a wave...
-                // force stop viper logic and kill it
+            // force stop viper logic and kill it
+            runWaveSpawn = false
+
+            // start death animation
+            thread SetBehavior( file.viperShip, eBehavior.DEATH_ANIM )
+            voper.SetInvulnerable()
+            VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_42_01_imc_viper" )
+
+            wait 5
+            // set winner!
+            AddTeamScore( GetOtherTeam( VOPER_TEAM ), 114514 )
+            //AddTeamScore( TEAM_IMC, 111111 )
+            voper.Die()
+            return // viper died, wave spawn ends
+        }
+        // homestead: sarah briggs's quest
+        else if ( healthFrac <= SARAH_QUEST_VOPER_HEALTH_FRAC )
+        {
+            if ( GetMapName() == "mp_homestead" && !sarahQuestCompleted )
+            {
                 runWaveSpawn = false
+                delayBeforeNextWave = 10.0
 
-                // start death animation
-                thread SetBehavior( file.viperShip, eBehavior.DEATH_ANIM )
                 voper.SetInvulnerable()
-                VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_42_01_imc_viper" )
-
-                wait 5
-                // set winner!
-                AddTeamScore( GetOtherTeam( VOPER_TEAM ), 114514 )
-                //AddTeamScore( TEAM_IMC, 111111 )
-                voper.Die()
-                return // viper died, wave spawn ends
-
-            // homestead: sarah briggs's quest
-            case SARAH_QUEST_VOPER_HEALTH_FRAC: 
-                if ( GetMapName() == "mp_homestead" && !sarahQuestCompleted )
-                {
-                    runWaveSpawn = false
-                    delayBeforeNextWave = 10.0
-
-                    viper.SetInvulnerable()
-                    waitthread SarahDefenseThink( TEAM_MILITIA )
-                    sarahQuestCompleted = true
-                }
-                break
+                waitthread SarahDefenseThink( TEAM_MILITIA )
+                sarahQuestCompleted = true
+            }
         }
 
         // wave
