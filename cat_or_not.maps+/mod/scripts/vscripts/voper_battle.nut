@@ -1047,7 +1047,7 @@ void function Behavior_ViperDeathAnimThread( ShipStruct ship )
 void function SetupVoperBattleSpawnedNPC( entity npc, string scriptName, int wavePoint = 1 )
 {
     npc.SetScriptName( scriptName )
-    file.entSpawnForVoperBattle[ npc ] = true
+    file.entSpawnForVoperBattle[ npc ] <- true
     thread WaitForNPCDeath( npc, scriptName, wavePoint )
 }
 
