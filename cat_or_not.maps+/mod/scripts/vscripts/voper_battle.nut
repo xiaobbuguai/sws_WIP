@@ -20,7 +20,7 @@ global int PassWaves
 
 const vector Player_SpawnPoint_Voper = < -151, 1091, 1490 >
 
-// wave spawn settings
+// wave point settings
 const int WAVE_POINTS_PER_INFANTRY = 1 // a infantry unit worth 1 wave point
 const int WAVE_POINTS_PER_TITAN = 10 // a titan unit worth 10 wave point
 const int WAVE_POINTS_PER_REAPER = 5 // a reaper unit woth 5 wave points
@@ -492,21 +492,8 @@ void function Phase1Think()
 
     // Smokescreen( smoke )
 
-    //float activatorTime = Time()
-
-    entity npc
-    int team = file.viperShip.model.GetTeam()
-    //vector origin = GetClosest2D( SpawnPoints_GetDropPod(), <1200, 1145, 1380>, 1000000000 ).GetOrigin()
-
-    int count = GetPlayerArray().len()
-    if ( count > 10 )
-        count = 10
-
-    #if VOPER_BATTLE_DEBUG
-        count = 10
-    #endif
-
     // phase 1 enemy: reaper can launch ticks
+    const int count = 10
     thread VoperBattle_GenericReaperSpawn( "phase1_ents", count ) // start spawn
 
     // calculate wave points
@@ -523,24 +510,11 @@ void function Phase2Think()
 	//EmitSoundOnEntity( file.viper, "diag_sp_viperchat_STS666_01_01_mcor_viper" )
     VoperBattle_ScriptedDialogue( "diag_sp_viperchat_STS666_01_01_mcor_viper" )
 
-    //float activatorTime = Time()
-
-    entity npc
-    int team = file.viperShip.model.GetTeam()
-
-    int count = GetPlayerArray().len()
-
-    if ( count >= 7 )
-        count = 7
-
-    #if VOPER_BATTLE_DEBUG
-        count = 7
-    #endif
-
     foreach( entity player in GetPlayerArray() )
         TryRechargePlayerTitanMeter( player )
 
     // phase 2 enemy: npc pilot embarked titans
+    const int count = 7
     thread VoperBattle_GenericTitanSpawn( "phase2_ents", count ) // start spawn
 
     // calculate wave points
@@ -606,6 +580,8 @@ void function UnlimitedSpawn()
 
     while ( true )
     {
+        WaitFrame() // always wait a frame to prevent stuck!
+
         entity voper = file.viperShip.model
         if ( !IsAlive( voper ) ) // voper died before loop!
             return
@@ -646,7 +622,7 @@ void function UnlimitedSpawn()
         }
 
         // wave
-        #if !VOPER_BATTLE_DEBUG
+        #if !VOPER_BATTLE_DEBUG // disable wave transation in debug
             if ( runWaveSpawn )
             {
                 switch ( PassWaves )
@@ -657,11 +633,14 @@ void function UnlimitedSpawn()
                         // start wave!
                         VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_22_01_imc_viper" )
                         voper.SetInvulnerable()
-                        thread VoperBattle_GenericSpecialistSquadSpawn( "phase3_ents", 5, "npc_soldier", "npc_soldier_shield_captain", 200 ) // 5 shield captain squad
-                        thread VoperBattle_GenericReaperSpawn( "phase3_ents", 4 ) // 4 tick reapers
-                        thread VoperBattle_GenericTitanSpawn( "phase3_ents", 3 ) // 3 npc titans
+                        const int squadSpawnCount = 5
+                        const int reaperSpawnCount = 4
+                        const int titanSpawnCount = 3
+                        thread VoperBattle_GenericSpecialistSquadSpawn( "phase3_ents", squadSpawnCount, "npc_soldier", "npc_soldier_shield_captain", 200 ) // 5 shield captain squad
+                        thread VoperBattle_GenericReaperSpawn( "phase3_ents", reaperSpawnCount ) // 4 tick reapers
+                        thread VoperBattle_GenericTitanSpawn( "phase3_ents", titanSpawnCount ) // 3 npc titans
                         // calculate wave points. all titans + all reapers + half of infantries
-                        int wavePoints = ( ( WAVE_POINTS_PER_INFANTRY * SQUAD_SIZE * 5 ) / 2 ) + WAVE_POINTS_PER_REAPER * 5 + WAVE_POINTS_PER_TITAN * 3
+                        int wavePoints = ( ( WAVE_POINTS_PER_INFANTRY * SQUAD_SIZE * squadSpawnCount ) / 2 ) + WAVE_POINTS_PER_REAPER * reaperSpawnCount + WAVE_POINTS_PER_TITAN * titanSpawnCount
                         // wait for required spawn, no timeout
                         waitthread WaitForWaveTimeout( "phase3_ents", wavePoints, -1 ) // -1 means no timeout
                         break
