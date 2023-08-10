@@ -2,7 +2,6 @@ global function VoperBattle_Init
 
 global function StartVoperBattle
 global function CoreFire
-global function HandleCamera
 global function ViperGetEnemy
 global function GetVoper
 global function GetVoperShip
@@ -46,6 +45,10 @@ const float REAPER_HEALTH_SCALE = 2.0
 const int WAVE_POINTS_PER_INFANTRY = 1 // a infantry unit worth 1 wave point
 const int WAVE_POINTS_PER_TITAN = 10 // a titan unit worth 10 wave point
 const int WAVE_POINTS_PER_REAPER = 5 // a reaper unit woth 5 wave points
+
+// notification settings
+// WIP
+//const int WAVE_PROGRESS_HUD_ENABLED = true // may cause unexpected crash and client-side stuck. don't know why, better rework sh_message_utils.gnut?
 
 // debug
 const bool VOPER_BATTLE_DEBUG = false
@@ -264,38 +267,6 @@ void function RunJetSfx( entity viper )
     PlayLoopFXOnEntity( $"P_xo_jet_fly_small", viper, "FX_R_TOP_THRUST", null, null, ENTITY_VISIBLE_TO_EVERYONE )
 }
 
-void function StartIntro( ShipStruct viperShip, int varient )
-{
-    WaitSignal( viperShip, "Goal" )
-    entity viper = viperShip.model
-
-
-    EmitSoundOnEntity( viper, "music_s2s_14_titancombat" )
-	EmitSoundOnEntity( viper, "diag_sp_bossFight_STS673_01_01_mcor_viper" )
-    foreach( entity player in GetPlayerArray() )
-    {
-        thread HandleCamera( player, file.ref )
-    }
-
-
-    WaitSignal( file.ref, "CameraHandleOver" )
-    viper.Signal( "CameraHandleOver" )
-
-    thread CoreFire()
-
-    thread ShipIdleAtTargetPos( viperShip, WorldToLocalOrigin( file.ref.GetOrigin() + < -500, 0, 200 > ) , <100,500,0> )
-    entity link = viper.GetParent()
-    link.NonPhysicsRotateTo( <0,180,0>, 0.00000001,0,0 )
-
-    thread AnimateViper( viper )
-
-    if ( varient == 0 )
-    {
-        thread Phase1Think()
-        //thread PhaseBackThink()
-    }
-}
-
 // for extra_ai_spawner boss viper
 void function StartIntro_BossViper( entity viper, int varient )
 {
@@ -369,6 +340,7 @@ void function StartIntro_BossViper( entity viper, int varient )
 
     if ( varient == 0 )
     {
+        viper.SetInvulnerable() // invulnerable gets cleared in phase3
         #if VOPER_BATTLE_DEBUG
             thread Phase3Think()
         #else
@@ -376,87 +348,6 @@ void function StartIntro_BossViper( entity viper, int varient )
         #endif // VOPER_BATTLE_DEBUG
         //thread PhaseBackThink() 
     }
-}
-
-void function HandleCamera( entity player, entity ref )
-{
-    if ( !IsValid( player ) || !IsAlive( player ) )
-        return
-
-    player.EndSignal( "OnDeath" )
-    player.EndSignal( "OnDestroy" )
-    ref.EndSignal( "CameraHandleOver" )
-
-    entity mover
-    entity camera
-
-    OnThreadEnd(
-		function() : ( player, camera, mover )
-		{
-            if ( IsValid( player ) )
-            {
-                //ViewConeFree( player )
-                //player.ClearParent()
-                //RemoveCinematicFlag( player, CE_FLAG_HIDE_MAIN_HUD )
-                //DeployAndEnableWeapons( player )
-                //player.ClearInvulnerable()
-                //player.AnimViewEntity_SetLerpOutTime( 1 )
-                //player.AnimViewEntity_Clear()
-//
-                // if ( IsValid( camera ) )
-                //     EntFireByHandle( camera, "Disable", "!activator", 0, player, null )
-                //player.Die()
-                //thread DelayedRespawnPlayer( player )
-
-
-            }
-
-			if ( IsValid( camera ) )
-                camera.Destroy()
-            if ( IsValid( mover ) )
-                mover.Destroy()
-		}
-	)
-
-    //player.SetInvulnerable()
-//
-    vector angles = <0,0,0>
-//
-    //camera = CreateEntity( "point_viewcontrol" )
-    //camera.kv.spawnflags = 56 // infinite hold time, snap to goal angles, make player non-solid
-    //camera.SetOrigin( player.GetOrigin() )
-    //camera.SetAngles( angles )
-    //DispatchSpawn( camera )
-//
-    //player.SetViewEntity( camera, true )
-    //// EntFireByHandle( camera, "Enable", "!activator", 0, player, null )
-    mover = CreateExpensiveScriptMover( player.GetOrigin(), angles )
-    //camera.SetParent( mover )
-//
-    //player.SetAngles( angles )
-    //HolsterAndDisableWeapons( player )
-    //AddCinematicFlag( player, CE_FLAG_HIDE_MAIN_HUD  )
-    //player.PlayerCone_SetLerpTime( 0.5 )
-    //player.PlayerCone_FromAnim()
-    //player.PlayerCone_SetMinYaw( 0 )
-    //player.PlayerCone_SetMaxYaw( 0 )
-    //player.PlayerCone_SetMinPitch( 0 )
-    //player.PlayerCone_SetMaxPitch( 0 )
-
-    mover.NonPhysicsMoveTo( ref.GetOrigin() + < -500,0,100 >, 1, 0.1, 0.1 )
-
-    wait 2
-
-    ref.Signal( "CameraHandleOver" )
-}
-
-void function DelayedRespawnPlayer( entity player )
-{
-    player.EndSignal( "OnDestroy" )
-
-    WaitFrame()
-
-    DoRespawnPlayer( player, null )
 }
 
 array<entity> function ViperGetTargetPlayers( bool heavyArmorOnly = false )
@@ -526,7 +417,7 @@ void function Phase2Think()
 
 void function Phase3Think()
 {
-    file.viperShip.model.ClearInvulnerable()
+    //file.viperShip.model.ClearInvulnerable()
     thread ShipIdleAtTargetPos( file.viperShip, WorldToLocalOrigin( file.ref.GetOrigin() + < 500, 0, 200 > ) , <500,1000,0> )
     entity link = file.viperShip.model.GetParent()
     link.NonPhysicsRotateTo( <0,180,0>, 0.00000001,0,0 )
@@ -635,7 +526,7 @@ void function UnlimitedSpawn()
                         const int squadSpawnCount = 5
                         const int reaperSpawnCount = 4
                         const int titanSpawnCount = 3
-                        thread VoperBattle_GenericSpecialistSquadSpawn( "phase3_ents", squadSpawnCount, "npc_soldier", "npc_soldier_shield_captain", 200 ) // 5 shield captain squad
+                        thread VoperBattle_GenericSpecialistSquadSpawn( "phase3_ents", squadSpawnCount, "npc_soldier", "npc_soldier_shield_captain" ) // 5 shield captain squad
                         thread VoperBattle_GenericReaperSpawn( "phase3_ents", reaperSpawnCount ) // 4 tick reapers
                         thread VoperBattle_GenericTitanSpawn( "phase3_ents", titanSpawnCount ) // 3 npc titans
                         // calculate wave points. all titans + all reapers + half of infantries
@@ -1210,7 +1101,7 @@ void function VoperBattle_GenericNPCSquadSpawn( string waveEntName, int count, s
     }
 }
 
-void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int count, string squadClass, string leaderAiSet, int leaderHealth = 150 )
+void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int count, string squadClass, string leaderAiSet )
 {
     WaitEndFrame() // wait so WaitForWaveTimeout() can set up
     for( int x = 0; x < count; x++ )
@@ -1229,7 +1120,7 @@ void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int c
             VOPER_TEAM,                 // team
             squadClass,                 // npc class
             leaderAiSet,                // specialist grunt leader aiset
-            leaderHealth,               // specialist grunt leader health
+            150,                        // specialist grunt leader health. this is a temp, we update it in squad handler
             // squad handler function
             void function( array<entity> guys ): ( waveEntName )
             {
@@ -1245,7 +1136,19 @@ void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int c
                     // highlight
                     thread SonarEnemyForever( guy )
 
-                    // update health. only for non-leader squad members
+                    // update health. for leader, update their health to all other squad member's health total
+                    if ( isLeader )
+                    {
+                        int totalSquadHealth = 0
+                        foreach ( otherGuy in guys )
+                        {
+                            if ( otherGuy == guy )
+                                continue
+                            totalSquadHealth += guy.GetMaxHealth()
+                        }
+                        if ( totalSquadHealth > 0 )
+                            guy.SetMaxHealth( totalSquadHealth )
+                    }
                     guy.SetMaxHealth( guy.GetMaxHealth() * INFANTRY_HEALTH_SCALE )
                     guy.SetHealth( guy.GetMaxHealth() )
 
