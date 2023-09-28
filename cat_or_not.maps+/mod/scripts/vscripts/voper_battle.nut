@@ -83,6 +83,8 @@ struct
 
 void function VoperBattle_Init()
 {
+    RegisterSignal( "WaveTransfer" )
+
     // add new boss titan
 	ExtraSpawner_RegisterToBossTitanSpawnList
 	(
@@ -116,8 +118,13 @@ void function VoperBattle_Init()
 		10												// decal index
 	)
 
+    //AddDeathCallback( "npc_soldier" )
+    //AddDeathCallback( "npc_super_spectre" )
+    //AddDeathCallback( "npc_titan" )
+
     // debug
     AddClientCommandCallback( "voper_battle", CC_ForceStartVoperBattle )
+    AddClientCommandCallback( "clear_non_viper_npc", CC_ClearNonViperNPCs )
 }
 
 void function VoperBossTitanSetup( entity titan )
@@ -147,6 +154,25 @@ bool function CC_ForceStartVoperBattle( entity player, array<string> args )
         return true
 
     thread StartVoperBattle( 0 )
+    return true
+}
+
+bool function CC_ClearNonViperNPCs( entity player, array<string> args )
+{
+    hadGift_Admin = false;
+	CheckAdmin( player );
+	if ( hadGift_Admin != true )
+	{
+		Kprint( player, "Admin permission not detected." );
+		return false;
+	}
+
+    foreach ( entity npc in GetNPCArray() )
+    {
+        if ( IsAlive( npc ) && npc != file.viper )
+            npc.Die()
+    }
+
     return true
 }
 
@@ -371,9 +397,20 @@ array<entity> function ViperGetTargetPlayers( bool heavyArmorOnly = false )
             validTargets.append( player )
     }
     if ( !heavyArmorOnly && validTargets.len() == 0 ) // no valid targets!!
+    {
         validTargets = GetPlayerArray_Alive()
+    }
 
     return validTargets
+}
+
+Point function GetHotDropSpawnPointFromLuckyPlayer( entity player )
+{
+    vector origin = player.GetOrigin()
+    vector traceAngles = < 90, player.GetAngles().y, 0 > // face down to ground
+    vector tracePos = origin + < 0, 0, 500 >
+
+    return CalculateTitanReplacementPoint( origin, tracePos, traceAngles )
 }
 
 void function Phase1Think()
@@ -421,7 +458,7 @@ void function Phase2Think()
     // calculate wave points
     int wavePoints = WAVE_POINTS_PER_TITAN * count
     // wait for all titans killed or 180s timeout
-    waitthread WaitForWaveTimeout( "phase1_ents", wavePoints, 180 )
+    waitthread WaitForWaveTimeout( "phase2_ents", wavePoints, 180 )
 
     thread Phase3Think()
 
@@ -429,6 +466,8 @@ void function Phase2Think()
 
 void function Phase3Think()
 {
+    print( "RUNNING Phase3Think()" )
+
     //file.viperShip.model.ClearInvulnerable()
     thread ShipIdleAtTargetPos( file.viperShip, WorldToLocalOrigin( file.ref.GetOrigin() + < 500, 0, 200 > ) , <500,1000,0> )
     entity link = file.viperShip.model.GetParent()
@@ -527,11 +566,12 @@ void function UnlimitedSpawn()
         #if !VOPER_BATTLE_DEBUG // disable wave transation in debug
             if ( runWaveSpawn )
             {
+                print( "PassWaves" )
                 switch ( PassWaves )
                 {
                     case 1: // first wave
                         // wave type: npc spawn
-                        
+                        print( "wave type: npc spawn" )
                         // start wave!
                         VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_22_01_imc_viper" )
                         voper.SetInvulnerable()
@@ -544,15 +584,15 @@ void function UnlimitedSpawn()
                         // calculate wave points. all titans + all reapers + half of infantries
                         int wavePoints = ( ( WAVE_POINTS_PER_INFANTRY * SQUAD_SIZE * squadSpawnCount ) / 2 ) + WAVE_POINTS_PER_REAPER * reaperSpawnCount + WAVE_POINTS_PER_TITAN * titanSpawnCount
                         // wait for required spawn, no timeout
-                        waitthread WaitForWaveTimeout( "phase3_ents", wavePoints, -1 ) // -1 means no timeout
+                        waitthread WaitForWaveTimeout( "phase3_ents", wavePoints, 150 ) // 150s timeout
                         break
 
                     case 2: // second wave
                         // wave type: viper health
+                        print( "wave type: viper health" )
                         delayBeforeNextWave = 5.0 // next wave delay 
 
                         // start wave!
-                        voper.ClearInvulnerable()
                         VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_36_01_imc_viper" )
                         waitthread WaitForVoperHealthLossPercentage( 0.1 ) // wait for viper loses 10% of health
                         break
@@ -753,10 +793,12 @@ void function correctViper()
 
     while( IsValid( viper ) )
     {
+        entity link = file.viperShip.model.GetParent()
+        if ( !IsValid( link ) )
+            return
         if ( viper.IsOnGround() )
         {
             viper.SetOrigin( viper.GetParent().GetOrigin() )
-            entity link = file.viperShip.model.GetParent()
             link.NonPhysicsRotateTo( <0,180,0>, 0.00000001,0,0 )
 
             thread ShipIdleAtTargetPos(  file.viperShip, WorldToLocalOrigin( file.ref.GetOrigin() + < 0, 0, 500 > ) , <100,500,0> )
@@ -766,7 +808,6 @@ void function correctViper()
         if ( viper.GetAngles().y >= 270 || viper.GetAngles().y <= 90 )
         {
             if ( IsValid(file.viperShip.model)){
-            entity link = file.viperShip.model.GetParent()
             link.NonPhysicsRotateTo( <0,180,0>, 0.00000001,0,0 )
             }
         }
@@ -946,6 +987,7 @@ void function SetupVoperBattleSpawnedNPC( entity npc, string scriptName, int wav
 
 void function WaitForNPCDeath( entity npc, string scriptName, int wavePoint )
 {
+    svGlobal.levelEnt.EndSignal( "WaveTransfer" ) // we stop counting if wave transfering
     string scriptName = npc.GetScriptName()
     WaitSignal( npc, "OnDeath", "OnDestroy" )
 
@@ -992,12 +1034,11 @@ void function VoperBattle_GenericReaperSpawn( string waveEntName, int count )
         array<entity> validTargets = ViperGetTargetPlayers()
         entity luckyPlayer = validTargets[ RandomInt( validTargets.len() ) ]
 
-        vector origin = luckyPlayer.GetOrigin()
-        vector angles = < 0, luckyPlayer.GetAngles().y, 0 > // npcs never rotates x&z angle
+        Point dropPoint = GetHotDropSpawnPointFromLuckyPlayer( luckyPlayer )
 
         thread ExtraSpawner_SpawnReaperCanLaunchTicks( 
-            origin,                     // origin
-            angles,                     // angles
+            dropPoint.origin,           // origin
+            dropPoint.angles,           // angles
             VOPER_TEAM,                 // team
             "npc_super_spectre_aitdm",  // reaper aiset
             "npc_frag_drone_fd"         // ticks aiset
@@ -1029,6 +1070,7 @@ void function VoperBattle_GenericTitanSpawn( string waveEntName, int count )
             titan.SetHealth( titan.GetMaxHealth() )
 
             // setup wave points, for WaitForWaveTimeout() handling spawns
+            print( "SetupVoperBattleSpawnedNPC for: " + string( titan ) )
             SetupVoperBattleSpawnedNPC( titan, waveEntName, WAVE_POINTS_PER_TITAN )
         }
     )
@@ -1053,13 +1095,12 @@ void function VoperBattle_GenericTitanSpawn( string waveEntName, int count )
         array<entity> validTargets = ViperGetTargetPlayers()
         entity luckyPlayer = validTargets[ RandomInt( validTargets.len() ) ]
 
-        vector origin = luckyPlayer.GetOrigin()
-        vector angles = < 0, luckyPlayer.GetAngles().y, 0 > // npcs never rotates x&z angle
         string titanToSpawn = TITAN_SPAWN_NAMES[ RandomInt( TITAN_SPAWN_NAMES.len() ) ]
+        Point dropPoint = GetHotDropSpawnPointFromLuckyPlayer( luckyPlayer )
 
         thread ExtraSpawner_SpawnPilotCanEmbark(
-            origin,             // origin
-            angles,             // angles
+            dropPoint.origin,   // origin
+            dropPoint.angles,   // angles
             VOPER_TEAM,         // team
             titanToSpawn        // spawn name
         )
@@ -1078,12 +1119,11 @@ void function VoperBattle_GenericNPCSquadSpawn( string waveEntName, int count, s
         array<entity> validTargets = ViperGetTargetPlayers()
         entity luckyPlayer = validTargets[ RandomInt( validTargets.len() ) ]
 
-        vector origin = luckyPlayer.GetOrigin()
-        vector angles = < 0, luckyPlayer.GetAngles().y, 0 > // npcs never rotates x&z angle
+        Point dropPoint = GetHotDropSpawnPointFromLuckyPlayer( luckyPlayer )
 
         thread ExtraSpawner_SpawnDropPod( 
-            origin,                     // origin
-            angles,                     // angles
+            dropPoint.origin,           // origin
+            dropPoint.angles,           // angles
             VOPER_TEAM,                 // team
             squadClass,                 // npc class
             // squad handler function
@@ -1123,12 +1163,11 @@ void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int c
         array<entity> validTargets = ViperGetTargetPlayers()
         entity luckyPlayer = validTargets[ RandomInt( validTargets.len() ) ]
 
-        vector origin = luckyPlayer.GetOrigin()
-        vector angles = < 0, luckyPlayer.GetAngles().y, 0 > // npcs never rotates x&z angle
+        Point dropPoint = GetHotDropSpawnPointFromLuckyPlayer( luckyPlayer )
 
         thread ExtraSpawner_SpawnSpecialistGruntDropPod( 
-            origin,                     // origin
-            angles,                     // angles
+            dropPoint.origin,           // origin
+            dropPoint.angles,           // angles
             VOPER_TEAM,                 // team
             squadClass,                 // npc class
             leaderAiSet,                // specialist grunt leader aiset
@@ -1179,6 +1218,7 @@ void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int c
 
 void function WaitForWaveTimeout( string waveEntName, int wavePointsNeeded, float maxTimeout )
 {
+    svGlobal.levelEnt.Signal( "WaveTransfer" ) // stop current counting wave
     file.pendingWaveTimeouts[ waveEntName ] <- 0
 
     float maxWait = Time() + maxTimeout
@@ -1186,6 +1226,8 @@ void function WaitForWaveTimeout( string waveEntName, int wavePointsNeeded, floa
         maxWait = Time() + 65535 // timeout < 0 means no timeout
     while ( Time() < maxWait )
     {
+        //print( "file.pendingWaveTimeouts[ waveEntName ]: " + string( file.pendingWaveTimeouts[ waveEntName ] ) )
+        //print( "wavePointsNeeded: " + string( wavePointsNeeded ) )
         if ( file.pendingWaveTimeouts[ waveEntName ] >= wavePointsNeeded )
             break
 
@@ -1193,6 +1235,7 @@ void function WaitForWaveTimeout( string waveEntName, int wavePointsNeeded, floa
     }
 
     // wave ended!
+    print( "waveEnt: " + waveEntName + " ended!" )
     delete file.pendingWaveTimeouts[ waveEntName ]
 }
 
@@ -1205,6 +1248,7 @@ void function WaitForVoperHealthLossPercentage( float percentage )
     int targetHealth = maxint( minHealth, startHealth - int( maxHealth * percentage ) )
     while ( IsAlive( voper ) )
     {
+        voper.ClearInvulnerable()
         if ( voper.GetHealth() <= targetHealth )
             break
 
@@ -1254,10 +1298,7 @@ bool function TryRechargePlayerTitanMeter( entity player )
 {
     if ( !player.IsTitan() && IsValid( player ) && IsAlive( player ) )
     {
-        player.p.earnMeterOverdriveFrac = 1.0
-        player.SetPlayerNetFloat( EARNMETER_EARNEDFRAC, 1.0 )
-        PlayerEarnMeter_SetOwnedFrac( player, 1.0 )
-        PlayerEarnMeter_SetRewardFrac( player, 1.0 )
+        PlayerEarnMeter_AddOwnedFrac( player, 1.0 )
         return true
     }
 
