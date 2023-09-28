@@ -226,6 +226,8 @@ void function StartVoperBattle( int varient )
 	MpBossTitan_SetDamageReductionScale( viper, VOPER_DAMAGE_REDUCTION_SCALE )
     viper.GetOffhandWeapon( OFFHAND_EQUIPMENT ).AllowUse( false ) // disable core ability, we use scripted titan core weapon
 
+    ExtraSpawner_StopDefaultHandler( viper ) // stop handler for viper, so their animation won't be messed up
+
     #if VOPER_BATTLE_DEBUG
         viper.SetMaxHealth( 2500 )
     #else
