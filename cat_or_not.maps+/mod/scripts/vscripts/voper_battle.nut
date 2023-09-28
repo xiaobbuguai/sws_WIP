@@ -30,16 +30,24 @@ const float VOPER_MIN_HEALTH_FRAC = 0.03 // viper will keep 3% of health before 
 const float SARAH_QUEST_VOPER_HEALTH_FRAC = 0.3 // game will start SarahDefenseThink() if viper reaches 30% health or lower
 const float ASH_ASSIST_HEALTH_FRAC = 0.5 // lower than this amount of health will call-in a ash to help
 // voper core settings
-const float VOPER_CORE_MIN_COOLDOWN = 10.0 // voper will have minium of 10s cooldown for their core ability
-const float VOPER_CORE_MAX_COOLDOWN = 30.0 // voper will have maxnium of 30s cooldown for their core ability
+const float VOPER_CORE_MIN_COOLDOWN = 10.0 // voper will have minium of this cooldown for their core ability
+const float VOPER_CORE_MAX_COOLDOWN = 30.0 // voper will have maxnium of this cooldown for their core ability
 const int VOPER_CORE_MAX_BURSTS = 32 // how many rockets voper will fire during one core activation
 const float VOPER_CORE_BURST_INTERVAL = 0.1 // interval between each rocket launch( script tickrate is 10 by default )
 const float VOPER_CORE_ROCKET_HOMING_SPEED_SCALE = 2.0 // homing speed scale for core rocket. the higher, the rocket can be more accurate at close range
+
+// ash assist
+const int ASH_MAX_HEALTH = 90000 // 90000 health with 0.5 damage reduction ~= 180000 health
+const float ASH_DAMAGE_SCALE = 2.0
+const float ASH_DAMAGE_REDUCTION_SCALE = 0.5
+const float ASH_CORE_METER_MULTIPLIER = 4.0 // ash's core multiplier
 
 // npc health settings
 const float INFANTRY_HEALTH_SCALE = 2.0
 const float TITAN_HEALTH_SCALE = 1.5
 const float REAPER_HEALTH_SCALE = 2.0
+// npc damage
+const float NPC_TITAN_CORE_METER_MULTIPLIER = 2.5 // npc titan's core multiplier
 
 // wave point settings
 const int WAVE_POINTS_PER_INFANTRY = 1 // a infantry unit worth 1 wave point
@@ -503,11 +511,22 @@ void function BossAshAssistThink()
     {
         if ( GetHealthFrac( file.viperShip.model ) <= ASH_ASSIST_HEALTH_FRAC )
         {
-            thread ExtraSpawner_SpawnBossTitan( file.origin_ref, <0,90,0>, VOPER_TEAM, "ash_boss", TITAN_MERC )
+            SpawnAshBossTitanAndSetup()
             return
         }
         WaitFrame()
     }
+}
+
+void function SpawnAshBossTitanAndSetup()
+{
+    entity ash = ExtraSpawner_SpawnBossTitan( file.origin_ref, <0,90,0>, VOPER_TEAM, "ash_boss", TITAN_MERC )
+
+    ash.SetMaxHealth( ASH_MAX_HEALTH )
+    ash.SetHealth( ash.GetMaxHealth() )
+    MpBossTitan_SetDamageScale( ash, ASH_DAMAGE_SCALE ) // they can deal higher damage
+	MpBossTitan_SetDamageReductionScale( ash, ASH_DAMAGE_REDUCTION_SCALE )
+    TitanHealth_SetTitanCoreBuilderMultiplier( ash, ASH_CORE_METER_MULTIPLIER ) // want them get core abilities faster
 }
 
 // new-adding version
@@ -818,10 +837,13 @@ void function correctViper()
 
 void function MissionEND()
 {
-    // no need to update health for mission
-    //file.viperShip.model.SetHealth( 200000 )
-    //PassWaves = 0
-    //file.viperShip.model.ClearInvulnerable()
+    entity voper = GetVoper()
+    if ( IsValid( voper ) )
+    {
+        voper.SetHealth( voper.GetMaxHealth() * SARAH_QUEST_VOPER_HEALTH_FRAC )
+        //PassWaves = 0
+        voper.ClearInvulnerable()
+    }
 }
 
 entity function GetVoper()
@@ -1062,18 +1084,22 @@ void function VoperBattle_GenericTitanSpawn( string waveEntName, int count )
             // search for enemies
             thread ExtraSpawner_TitanHandler( titan )
 
-            //TitanHealth_SetTitanCoreBuilderMultiplier( titan, 4.0 ) // want them get core abilities faster
-    
-            // highlight
-            thread SonarEnemyForever( titan, 5 ) // add 5s delay before start highlighting
+            // we don't setup general stuffs for boss titan
+            if ( titan.ai.bossTitanType != TITAN_MERC )
+            {
+                TitanHealth_SetTitanCoreBuilderMultiplier( titan, NPC_TITAN_CORE_METER_MULTIPLIER ) // want them get core abilities faster
+        
+                // highlight
+                thread SonarEnemyForever( titan, 5 ) // add 5s delay before start highlighting
 
-            // update health
-            titan.SetMaxHealth( titan.GetMaxHealth() * TITAN_HEALTH_SCALE )
-            titan.SetHealth( titan.GetMaxHealth() )
+                // update health
+                titan.SetMaxHealth( titan.GetMaxHealth() * TITAN_HEALTH_SCALE )
+                titan.SetHealth( titan.GetMaxHealth() )
 
-            // setup wave points, for WaitForWaveTimeout() handling spawns
-            print( "SetupVoperBattleSpawnedNPC for: " + string( titan ) )
-            SetupVoperBattleSpawnedNPC( titan, waveEntName, WAVE_POINTS_PER_TITAN )
+                // setup wave points, for WaitForWaveTimeout() handling spawns
+                print( "SetupVoperBattleSpawnedNPC for: " + string( titan ) )
+                SetupVoperBattleSpawnedNPC( titan, waveEntName, WAVE_POINTS_PER_TITAN )
+            }
         }
     )
 
