@@ -27,7 +27,7 @@ const int VOPER_MAX_HEALTH = 90000 // 90000 health with 0.8 damage reduction ~= 
 const float VOPER_DAMAGE_SCALE = 2.5 // voper deals 2.5x damage to players
 // voper health settings
 const float VOPER_MIN_HEALTH_FRAC = 0.03 // viper will keep 3% of health before getting killed
-const float SARAH_QUEST_VOPER_HEALTH_FRAC = 0.3 // game will start SarahDefenseThink() if viper reaches 30% health or lower
+const float SARAH_QUEST_VOPER_HEALTH_FRAC = 0.3 // in homestead, game will start SarahDefenseThink() if viper reaches this percentage of health or lower
 const float ASH_ASSIST_HEALTH_FRAC = 0.5 // lower than this amount of health will call-in a ash to help
 // voper core settings
 const float VOPER_CORE_MIN_COOLDOWN = 10.0 // voper will have minium of this cooldown for their core ability
