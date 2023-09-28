@@ -559,6 +559,7 @@ void function UnlimitedSpawn()
                 voper.SetInvulnerable()
                 waitthread SarahDefenseThink( TEAM_MILITIA )
                 sarahQuestCompleted = true
+                PassWaves = 2 // reset wave count: we enter health wave after quest
             }
         }
 
@@ -817,9 +818,10 @@ void function correctViper()
 
 void function MissionEND()
 {
-    file.viperShip.model.SetHealth( 200000 )
+    // no need to update health for mission
+    //file.viperShip.model.SetHealth( 200000 )
     //PassWaves = 0
-    file.viperShip.model.ClearInvulnerable()
+    //file.viperShip.model.ClearInvulnerable()
 }
 
 entity function GetVoper()
