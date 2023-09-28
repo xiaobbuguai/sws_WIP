@@ -1248,12 +1248,14 @@ void function WaitForVoperHealthLossPercentage( float percentage )
     int targetHealth = maxint( minHealth, startHealth - int( maxHealth * percentage ) )
     while ( IsAlive( voper ) )
     {
-        voper.ClearInvulnerable()
+        voper.ClearInvulnerable() // keep clearing
         if ( voper.GetHealth() <= targetHealth )
             break
 
         WaitFrame()
     }
+    if ( IsAlive( voper ) )
+        voper.SetInvulnerable() // wave ended properly
 }
 
 //  _   _ _____ ___ _     ___ _______   __    _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
