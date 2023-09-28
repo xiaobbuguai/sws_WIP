@@ -46,6 +46,16 @@ const int WAVE_POINTS_PER_INFANTRY = 1 // a infantry unit worth 1 wave point
 const int WAVE_POINTS_PER_TITAN = 10 // a titan unit worth 10 wave point
 const int WAVE_POINTS_PER_REAPER = 5 // a reaper unit woth 5 wave points
 
+// wave settings
+// 1st wave
+const int FIRST_WAVE_REAPERS_COUNT = 10
+// 2nd wave
+const int SECOND_WAVE_TITANS_COUNT = 7
+// unlimited spawn wave
+const int UNLIMITED_SPAWN_SQUADS_COUNT = 5
+const int UNLIMITED_SPAWN_REAPERS_COUNT = 4
+const int UNLIMITED_SPAWN_TITANS_COUNT = 3
+
 // notification settings
 // WIP
 //const int WAVE_PROGRESS_HUD_ENABLED = true // may cause unexpected crash and client-side stuck. don't know why, better rework sh_message_utils.gnut?
@@ -384,7 +394,7 @@ void function Phase1Think()
     // Smokescreen( smoke )
 
     // phase 1 enemy: reaper can launch ticks
-    const int count = 10
+    const int count = FIRST_WAVE_REAPERS_COUNT
     thread VoperBattle_GenericReaperSpawn( "phase1_ents", count ) // start spawn
 
     // calculate wave points
@@ -405,7 +415,7 @@ void function Phase2Think()
         TryRechargePlayerTitanMeter( player )
 
     // phase 2 enemy: npc pilot embarked titans
-    const int count = 7
+    const int count = SECOND_WAVE_TITANS_COUNT
     thread VoperBattle_GenericTitanSpawn( "phase2_ents", count ) // start spawn
 
     // calculate wave points
@@ -525,9 +535,9 @@ void function UnlimitedSpawn()
                         // start wave!
                         VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_22_01_imc_viper" )
                         voper.SetInvulnerable()
-                        const int squadSpawnCount = 5
-                        const int reaperSpawnCount = 4
-                        const int titanSpawnCount = 3
+                        const int squadSpawnCount = UNLIMITED_SPAWN_SQUADS_COUNT
+                        const int reaperSpawnCount = UNLIMITED_SPAWN_REAPERS_COUNT
+                        const int titanSpawnCount = UNLIMITED_SPAWN_TITANS_COUNT
                         thread VoperBattle_GenericSpecialistSquadSpawn( "phase3_ents", squadSpawnCount, "npc_soldier", "npc_soldier_shield_captain" ) // 5 shield captain squad
                         thread VoperBattle_GenericReaperSpawn( "phase3_ents", reaperSpawnCount ) // 4 tick reapers
                         thread VoperBattle_GenericTitanSpawn( "phase3_ents", titanSpawnCount ) // 3 npc titans
