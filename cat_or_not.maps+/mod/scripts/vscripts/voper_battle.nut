@@ -50,6 +50,7 @@ const float TITAN_HEALTH_SCALE = 1.5
 const float REAPER_HEALTH_SCALE = 2.0
 // npc damage
 const float NPC_TITAN_CORE_METER_MULTIPLIER = 2.5 // npc titan's core multiplier
+const float NPC_TITAN_EJECTING_DELAY = 3.0 // npc pilot ejecting delay after doom
 
 // wave point settings
 const int WAVE_POINTS_PER_INFANTRY = 1 // an infantry unit worth 1 wave point
@@ -388,8 +389,25 @@ void function TrackPlayerLeavingTitan( entity owner, string notification = "" )
     // disble owner exiting titan
     DisableTitanExit( owner )
 
-    WaitSignal( owner, "DisembarkingTitan", "TitanEjectionStarted" )
+    table result = WaitSignal( owner, "DisembarkingTitan", "TitanEjectionStarted" )
     //print( "betrayer leaving titan or ejecting!" )
+
+    entity attacker = owner
+    entity inflictor = owner
+    int damageSourceId = damagedef_suicide
+    int damageTypes = DF_GIB
+    if ( result.signal == "TitanEjectionStarted" )
+    {
+        entity soul = owner.GetTitanSoul()
+
+        if ( IsValid( soul ) )
+        {
+            table lastAttackInfo = expect table( soul.lastAttackInfo )
+            attacker = ( "attacker" in lastAttackInfo ) ? expect entity( lastAttackInfo.attacker ) : owner
+            inflictor = ( "inflictor" in lastAttackInfo ) ? expect entity( lastAttackInfo.inflictor ) : owner
+            damageSourceId = ( "damageSourceId" in lastAttackInfo ) ? expect int( lastAttackInfo.damageSourceId ) : damagedef_suicide
+        }
+    }
 
     while ( owner.IsTitan() )
         WaitFrame()
@@ -399,7 +417,7 @@ void function TrackPlayerLeavingTitan( entity owner, string notification = "" )
     {
         if ( notification != "" )
             SendHudMessage( owner, notification, -1, -0.35, 255, 255, 0, 255, 0, 5, 0 )
-        owner.Die( owner, owner, { damageSourceId = eDamageSourceId.outOfBounds } )
+        owner.Die( attacker, inflictor, { scriptType = damageTypes, damageSourceId = damageSourceId } )
     }
 }
 
@@ -1471,6 +1489,7 @@ void function VoperBattle_GenericTitanSpawn( string waveEntName, int count )
 
                 // setup default nuke
                 ExtraSpawner_SetNPCPilotEmbarkedTitanNuke( titan )
+                TitanHealth_SetSoulNPCPilotEjectDelay( titan.GetTitanSoul(), NPC_TITAN_EJECTING_DELAY )
 
                 // setup wave points, for WaitForWaveTimeout() handling spawns
                 print( "SetupVoperBattleSpawnedNPC for: " + string( titan ) )
