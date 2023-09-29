@@ -1257,7 +1257,7 @@ void function UnlimitedSpawn()
                     thread VoperBattle_GenericReaperSpawn( "phase3_ents", reaperSpawnCount ) // 4 tick reapers
                     thread VoperBattle_GenericTitanSpawn( "phase3_ents", titanSpawnCount ) // 3 npc titans
                     // calculate wave points. all titans + all reapers + all infantries
-                    int wavePoints =  WAVE_POINTS_PER_INFANTRY * SQUAD_SIZE * squadSpawnCount + WAVE_POINTS_PER_REAPER * reaperSpawnCount + WAVE_POINTS_PER_TITAN * titanSpawnCount
+                    int wavePoints = WAVE_POINTS_PER_INFANTRY * SQUAD_SIZE * squadSpawnCount + WAVE_POINTS_PER_REAPER * reaperSpawnCount + WAVE_POINTS_PER_TITAN * titanSpawnCount
                     // wait for required spawn, no timeout
                     waitthread WaitForWaveTimeout( "phase3_ents", wavePoints, UNLIMITED_SPAWN_TIMEOUT ) // 150s timeout
                     break
