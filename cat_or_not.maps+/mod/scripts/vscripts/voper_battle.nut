@@ -12,6 +12,7 @@ global function ViperBankMagnitude
 global function InitEmptyShip
 global entity viper
 
+global function PlayerBecomesBetrayer
 
 global function MissionEND
 
@@ -749,6 +750,16 @@ void function PickRandomBetrayerFromPlayers()
 
 void function PlayerBecomesBetrayer( entity player )
 {
+    thread PlayerBecomesBetrayer_Threaded( player )
+}
+
+void function PlayerBecomesBetrayer_Threaded( entity player )
+{
+    if ( player.isSpawning ) // is respawning as titan?
+    {
+        while ( !player.IsTitan() )
+            WaitFrame() // wait until player become titan and kill them
+    }
     // kill them and send to intermissing cam, so they can respawn
     if ( IsAlive( player ) )
         player.Die( player, player, { damageSourceId = eDamageSourceId.team_switch } )
