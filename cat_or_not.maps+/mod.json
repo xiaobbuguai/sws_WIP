@@ -15,7 +15,7 @@
 		},
 		{"Name": "disabled_elements",
 			"DefaultValue": "null null"
-		}
+		},
 		// not a lot of stuff to disable rn
 		// the following are some args that disable stuff
 		// voper
@@ -40,6 +40,14 @@
 		// that will disable voper and sarah's coffee shop D:
 
 		// you can't disable the gambler >:(
+
+
+		{
+			// for storing player UID that already betrayed last match
+			// don't allow them betray again
+			"Name": "last_betrayed_players",
+			"DefaultValue": "null null"
+		}
 	],
 	"Scripts": [
 		{

@@ -1,3 +1,4 @@
+untyped // for we using entity.s
 global function VoperBattle_Init
 
 global function StartVoperBattle
@@ -22,9 +23,9 @@ const vector Player_SpawnPoint_Voper = < -151, 1091, 1490 >
 // voper
 const int VOPER_TEAM = TEAM_IMC
 // voper settings
-const float VOPER_DAMAGE_REDUCTION_SCALE = 0.8
 const int VOPER_MAX_HEALTH = 90000 // 90000 health with 0.8 damage reduction ~= 450000 health
 const float VOPER_DAMAGE_SCALE = 2.5 // voper deals 2.5x damage to players
+const float VOPER_DAMAGE_REDUCTION_SCALE = 0.8
 // voper health settings
 const float VOPER_MIN_HEALTH_FRAC = 0.03 // viper will keep 3% of health before getting killed
 const float SARAH_QUEST_VOPER_HEALTH_FRAC = 0.3 // in homestead, game will start SarahDefenseThink() if viper reaches this percentage of health or lower
@@ -34,13 +35,14 @@ const float VOPER_CORE_MIN_COOLDOWN = 10.0 // voper will have minium of this coo
 const float VOPER_CORE_MAX_COOLDOWN = 30.0 // voper will have maxnium of this cooldown for their core ability
 const int VOPER_CORE_MAX_BURSTS = 32 // how many rockets voper will fire during one core activation
 const float VOPER_CORE_BURST_INTERVAL = 0.1 // interval between each rocket launch( script tickrate is 10 by default )
+const float VOPER_CORE_ROCKET_SPEED_SCALE = 1.5 // launch speed scale for core rocket. the higher, the rocket can be more accurate at long range
 const float VOPER_CORE_ROCKET_HOMING_SPEED_SCALE = 2.0 // homing speed scale for core rocket. the higher, the rocket can be more accurate at close range
 
 // ash assist
 const int ASH_MAX_HEALTH = 90000 // 90000 health with 0.5 damage reduction ~= 180000 health
 const float ASH_DAMAGE_SCALE = 2.0
 const float ASH_DAMAGE_REDUCTION_SCALE = 0.5
-const float ASH_CORE_METER_MULTIPLIER = 4.0 // ash's core multiplier
+const float ASH_CORE_METER_MULTIPLIER = 6.0 // ash's core multiplier
 
 // npc health settings
 const float INFANTRY_HEALTH_SCALE = 2.0
@@ -50,23 +52,36 @@ const float REAPER_HEALTH_SCALE = 2.0
 const float NPC_TITAN_CORE_METER_MULTIPLIER = 2.5 // npc titan's core multiplier
 
 // wave point settings
-const int WAVE_POINTS_PER_INFANTRY = 1 // a infantry unit worth 1 wave point
+const int WAVE_POINTS_PER_INFANTRY = 1 // an infantry unit worth 1 wave point
 const int WAVE_POINTS_PER_TITAN = 10 // a titan unit worth 10 wave point
 const int WAVE_POINTS_PER_REAPER = 5 // a reaper unit woth 5 wave points
 
 // wave settings
-// 1st wave
+// 1st wave( phase1 )
 const int FIRST_WAVE_REAPERS_COUNT = 10
-// 2nd wave
+const float FIRST_WAVE_TIMEOUT = 150
+// 2nd wave( phase2 )
 const int SECOND_WAVE_TITANS_COUNT = 7
-// unlimited spawn wave
+const float SECOND_WAVE_TIMEOUT = 150
+// unlimited spawn wave( phase3 )
 const int UNLIMITED_SPAWN_SQUADS_COUNT = 5
 const int UNLIMITED_SPAWN_REAPERS_COUNT = 4
 const int UNLIMITED_SPAWN_TITANS_COUNT = 3
+const float UNLIMITED_SPAWN_TIMEOUT = 120
 
 // notification settings
 // WIP
 //const int WAVE_PROGRESS_HUD_ENABLED = true // may cause unexpected crash and client-side stuck. don't know why, better rework sh_message_utils.gnut?
+
+// betrayer settings
+const int BETRAY_MIN_REQUIRED_PLAYERS = 2 // you need at least this amount of players to start betray
+const float BETRAY_PLAYER_PERCENTAGE = 0.2 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
+const float BETRAYED_PLAYER_HEALTH_SCALE = 2.0 // betrayed player's health scale
+const int BETRAYED_PLAYER_DOOMED_HEALTH = 8000 // betrayed player's doomed health value
+const float BETRAYED_PLAYER_SHIELD_SCALE = 2.0 // betrayed player's shield scale
+const float BETRAYED_PLAYER_SHIELD_REGEN_TIME = 3.0 // time required to regen shield to full
+const float BETRAYED_PLAYER_SHIELD_REGEN_DELAY = 3.0 // how long the betaryed player can start regen shield
+const float BETRAYED_PLAYER_CORE_MULTIPLIER = 10.0 // beteryed player's core meter multiplier
 
 // debug
 const bool VOPER_BATTLE_DEBUG = false
@@ -87,12 +102,13 @@ struct
     // wave spawns
     table<entity, bool> entSpawnForVoperBattle
     table<string, int> pendingWaveTimeouts
+
+    // betrayer
+    array<string> betrayedPlayerUIDs
 } file
 
 void function VoperBattle_Init()
 {
-    RegisterSignal( "WaveTransfer" )
-
     // add new boss titan
 	ExtraSpawner_RegisterToBossTitanSpawnList
 	(
@@ -126,9 +142,19 @@ void function VoperBattle_Init()
 		10												// decal index
 	)
 
+    // wave spawns
+    RegisterSignal( "WaveTransfer" )
+    // unused, already handled by normal wave spawns
     //AddDeathCallback( "npc_soldier" )
     //AddDeathCallback( "npc_super_spectre" )
     //AddDeathCallback( "npc_titan" )
+
+    // betrayer
+    RegisterSignal( "TrackBetrayerPlayerTitanDeath" )
+    // for betrayer playstyle restriction
+    AddCallback_OnPlayerRespawned( OnPlayerRespawned )
+    // for updating betrayer titan loadout
+    AddSpawnCallback( "npc_titan", OnTitanSpawned )
 
     // debug
     AddClientCommandCallback( "voper_battle", CC_ForceStartVoperBattle )
@@ -144,6 +170,207 @@ void function VoperBossTitanSetup( entity titan )
 		// disable their ejecting, so players won't easily notice that they have no proper model
 		TitanHealth_SetSoulNPCPilotEjectDelay( soul, -1 ) // -1 means never eject
 	}
+}
+
+void function OnPlayerRespawned( entity player )
+{
+    bool respawnAsTitan = expect bool( player.GetPersistentVar( "spawnAsTitan" ) ) || Riff_SpawnAsTitan() == 1
+    if ( respawnAsTitan ) // player already spawned as titan
+        return
+
+    if ( player.IsTitan() || IsValid( player.GetPetTitan() ) )
+        return
+
+    if ( file.betrayedPlayerUIDs.contains( player.GetUID() ) )
+    {
+        print( "Betrayer player respawned! Setting to titan" )
+        // this will change player to spectator, no worries
+        thread ReplaceBetrayerAsTitan( player )
+    }
+}
+
+// a copy of RespawnAsTitan(), without killing player
+// betrayer never becomes pilot, so we can feel free to rip their pilot stuffs
+void function ReplaceBetrayerAsTitan( entity player )
+{
+    TakeAllWeapons( player )
+    player.FreezeControlsOnServer()
+    player.Hide()
+    player.SetInvulnerable()
+	//if( IsAlive( player ) )
+	//	return
+
+	player.Signal( "PlayerRespawnStarted" )
+	// modified
+	//player.SetPlayerSettings( "spectator" ) // prevent a crash with going from titan => pilot on respawn
+	//player.StopPhysics() // need to set this after SetPlayerSettings
+	//PlayerClassChangeToSpectator( player )
+	
+	player.isSpawning = true
+	entity spawnpoint = FindSpawnPoint( player, true, ( ShouldStartSpawn( player ) || Flag( "ForceStartSpawn" ) ) && !IsFFAGame() )
+
+ 	TitanLoadoutDef titanLoadout = GetTitanLoadoutForPlayer( player )
+	
+	asset model = GetPlayerSettingsAssetForClassName( titanLoadout.setFile, "bodymodel" )
+	Attachment warpAttach = GetAttachmentAtTimeFromModel( model, "at_hotdrop_01", "offset", spawnpoint.GetOrigin(), spawnpoint.GetAngles(), 0 )
+	PlayFX( TURBO_WARP_FX, warpAttach.position, warpAttach.angle )
+		
+	entity titan = CreateAutoTitanForPlayer_FromTitanLoadout( player, titanLoadout, spawnpoint.GetOrigin(), spawnpoint.GetAngles() )
+	DispatchSpawn( titan )
+	// removed. prompt won't show when player is dead
+	//player.SetPetTitan( null ) // prevent embark prompt from showing up
+	player.SetPetTitan( titan ) // required for marking this player having a pet titan
+
+	ClearPlayerEliminated( player ) // mark as player not eliminated
+	ClearRespawnAvailable( player ) // need so the respawn icon doesn't show
+	
+    AddCinematicFlag( player, CE_FLAG_HIDE_MAIN_HUD ) // hide hud from pilots
+	AddCinematicFlag( player, CE_FLAG_CLASSIC_MP_SPAWNING ) // hide hud
+	// do titanfall scoreevent
+	AddPlayerScore( player, "Titanfall", player )
+
+	entity camera = CreateTitanDropCamera( spawnpoint.GetAngles(), < 90, titan.GetAngles().y, 0 > )
+	camera.SetParent( titan )
+	
+	// calc offset for spawnpoint angle
+	// todo this seems bad but too lazy to figure it out rn
+	//vector xyOffset = RotateAroundOrigin2D( < 44, 0, 0 >, < 0, 0, 0>, spawnpoint.GetAngles().y )
+	//xyOffset.z = 520 // < 44, 0, 520 > at 0,0,0, seems to be the offset used in tf2
+	//print( xyOffset )
+	
+	vector xyOffset = RotateAroundOrigin2D( < 44, 0, 520 >, < 0, 0, 0 >, spawnpoint.GetAngles().y )
+	
+	camera.SetLocalOrigin( xyOffset )
+	camera.SetLocalAngles( < camera.GetAngles().x, spawnpoint.GetAngles().y, camera.GetAngles().z > ) // this straight up just does not work lol
+	camera.Fire( "Enable", "!activator", 0, player )
+	
+	player.EndSignal( "OnDestroy" )
+	titan.EndSignal( "OnDestroy" )
+	OnThreadEnd( function() : ( player, titan, camera )
+	{
+		if ( IsValid( player ) )
+		{
+            player.UnfreezeControlsOnServer()
+            player.Show()
+            player.ClearInvulnerable()
+            RemoveCinematicFlag( player, CE_FLAG_HIDE_MAIN_HUD )
+			RemoveCinematicFlag( player, CE_FLAG_CLASSIC_MP_SPAWNING ) // show hud
+			player.isSpawning = false
+			ClearTitanAvailable( player ) // we've done everything, considering clear titan available
+		}
+	
+		if ( IsValid( titan ) )
+			titan.Destroy() // pilotbecomestitan leaves an npc titan that we need to delete
+		else
+			RespawnAsPilot( player ) // this is 100% an edgecase, just avoid softlocking if we ever hit it in playable gamestates
+			
+		camera.Fire( "Disable", "!activator", 0, player )
+		camera.Destroy()
+	})
+	
+	waitthread TitanHotDrop( titan, "at_hotdrop_01", spawnpoint.GetOrigin(), spawnpoint.GetAngles(), player, camera ) // do hotdrop anim
+	
+	player.SetOrigin( titan.GetOrigin() )
+	
+	// don't make player titan when entity batteryContainer is not valid.
+	// This will prevent a servercrash that sometimes occur when evac is disabled and somebody is calling a titan in the defeat screen.
+	if( IsValid( titan.GetTitanSoul().soul.batteryContainer ) )
+		PilotBecomesTitan( player, titan ) // make player titan
+	else
+		print( "batteryContainer is not a valid entity in RespawnAsTitan(). Skipping PilotBecomesTitan()." )
+}
+
+void function OnTitanSpawned( entity titan )
+{
+    // check owner player
+    entity owner = GetPetTitanOwner( titan )
+	if( !IsValid( owner ) )
+		return
+
+	// check if player has a titan dropping, if not it means player disembarked and created their pet titans, don't give protection if so.
+	if ( "spawnWithoutSoul" in titan.s )
+	{
+        // this is defined in CreateAutoTitanForPlayer_ForTitanBecomesPilot(), mark the titan as "disembarked" not "hotdropping"
+		if ( expect bool ( titan.s.spawnWithoutSoul ) )
+			return
+	}
+
+    // check owner betrayer state
+    string uid = owner.GetUID()
+    if ( file.betrayedPlayerUIDs.contains( uid ) )
+    {
+        print( "Betrayer titan spawned! Applying loadout" )
+        // add betrayer abilities
+        SetUpBetrayerOwnedTitan( titan, owner )
+    }
+}
+
+void function SetUpBetrayerOwnedTitan( entity titan, entity owner )
+{
+    // disble owner exiting titan
+    DisableTitanExit( owner )
+
+    entity soul = titan.GetTitanSoul()
+    // setup titan passives and health
+    titan.SetMaxHealth( titan.GetMaxHealth() * BETRAYED_PLAYER_HEALTH_SCALE )
+    titan.SetHealth( titan.GetMaxHealth() )
+    TitanSoul_SetSoulDoomedHealthOverride( soul, BETRAYED_PLAYER_DOOMED_HEALTH )
+
+    // shield regen
+    TitanHealth_SetSoulEnableShieldRegen( soul, true )
+	TitanHealth_SetSoulShieldRegenDelay( soul, BETRAYED_PLAYER_SHIELD_REGEN_DELAY )
+	TitanHealth_SetSoulShieldRegenTime( soul, BETRAYED_PLAYER_SHIELD_REGEN_TIME )
+
+    soul.SetShieldHealthMax( soul.GetShieldHealthMax() * BETRAYED_PLAYER_SHIELD_SCALE )
+    soul.SetShieldHealth( soul.GetShieldHealthMax() )
+
+    // passives
+    TitanLoadoutDef loadout = soul.soul.titanLoadout
+    // give PAS_HYPER_CORE
+    if ( !SoulHasPassive( soul, ePassives.PAS_HYPER_CORE ) )
+    {
+        GivePassive( soul, ePassives.PAS_HYPER_CORE )
+        if ( TitanDamageRewardsTitanCoreTime() )
+        {
+            SoulTitanCore_SetNextAvailableTime( soul, 0.20 )
+            GiveOffhandElectricSmoke( titan )
+        }
+    }
+    // these mods gets applied on player embark!
+    loadout.setFileMods.removebyvalue( "pas_mobility_dash_capacity" ) // incompatible with turbo_titan, remove
+    loadout.setFileMods.append( "turbo_titan" )
+    // super nuke: PAS_NUCLEAR_CORE + PAS_BUILD_UP_NUCLEAR_CORE
+    GivePassive( soul, ePassives.PAS_NUCLEAR_CORE )
+    if ( !SoulHasPassive( soul, ePassives.PAS_BUILD_UP_NUCLEAR_CORE ) )
+        GivePassive( soul, ePassives.PAS_BUILD_UP_NUCLEAR_CORE )
+
+    // core meter
+    TitanHealth_SetTitanCoreBuilderMultiplier( titan, BETRAYED_PLAYER_CORE_MULTIPLIER )
+
+    thread TrackBetrayerPlayerTitanDeath( owner, soul )
+}
+
+void function TrackBetrayerPlayerTitanDeath( entity owner, entity soul )
+{
+    print( "RUNNING TrackBetrayerPlayerTitanDeath()" )
+    owner.Signal( "TrackBetrayerPlayerTitanDeath" )
+    owner.EndSignal( "TrackBetrayerPlayerTitanDeath" )
+    owner.EndSignal( "OnDestroy" )
+    owner.EndSignal( "OnDeath" )
+    print( "betrayer: " + string( owner ) )
+
+    WaitSignal( owner, "DisembarkingTitan", "TitanEjectionStarted" )
+    //print( "betrayer leaving titan or ejecting!" )
+
+    while ( owner.IsTitan() )
+        WaitFrame()
+
+    //print( "betrayer has became pilot!" )
+    if ( IsAlive( owner ) )
+    {
+        SendHudMessage(owner, "背叛者離開泰坦視作死亡" , -1, -0.35, 255, 255, 0, 255, 0, 5, 0)
+        owner.Die( owner, owner, { damageSourceId = eDamageSourceId.outOfBounds } )
+    }
 }
 
 bool function CC_ForceStartVoperBattle( entity player, array<string> args )
@@ -208,7 +435,8 @@ void function StartVoperBattle( int varient )
 	ExtraSpawner_SetNPCAntiTitanWeapons( "npc_pilot_elite", ["mp_weapon_rocket_launcher", "mp_weapon_mgl", "mp_weapon_defender", "mp_weapon_arc_launcher"] )
     ExtraSpawner_SetNPCGrenadeWeapons( "npc_pilot_elite", ["mp_weapon_thermite_grenade", "mp_weapon_grenade_emp"] )	
 
-    thread TEAM_Player()
+    // force update player team
+    thread ForceSetPlayerToMilitia()
 
     file.origin_ref = <3352, -4226, 3267>
     if ( varient == 0 )
@@ -290,16 +518,94 @@ void function StartVoperBattle( int varient )
     thread StartIntro_BossViper( viper, varient )
 }
 
-string IMC_Player_Name = ""
-int IMC_Player_i = 0
-void function TEAM_Player(){//将玩家全部切换至反抗军
-    while(true){
-        foreach(entity player in GetPlayerArray()){
-            if(player.GetPlayerName()!=IMC_Player_Name && player.GetTeam()!=TEAM_MILITIA){
-                SetTeam(player,TEAM_MILITIA)
+void function PickRandomBetrayerFromPlayers()
+{
+    // no betrayer allowed if player count not enough
+    if ( GetPlayerArray().len() < BETRAY_MIN_REQUIRED_PLAYERS )
+        return
+    array<entity> validBetrayerPlayers
+    array<string> lastBetrayedPlayerUIDs = GetStringArrayFromConVar( "last_betrayed_players" )
+    StoreStringArrayIntoConVar( "last_betrayed_players", [] ) // clean up convar
+    array<entity> pickedBetrayerPlayers
+    int pendingBetrayerCount = int( GetPlayerArray().len() * BETRAY_PLAYER_PERCENTAGE )
+    if ( pendingBetrayerCount <= 0 )
+        pendingBetrayerCount = 1
+
+    // first search for all valid betrayer players
+    foreach ( entity player in GetPlayerArray() )
+    {
+        if ( lastBetrayedPlayerUIDs.contains( player.GetUID() ) )
+            continue
+
+        if ( !validBetrayerPlayers.contains( player ) )
+            validBetrayerPlayers.append( player )
+    }
+
+    // if we don't have enough players, allow last round picked player to become betrayer again
+    bool hasEnoughPlayer = validBetrayerPlayers.len() > pendingBetrayerCount
+    while ( pickedBetrayerPlayers.len() < pendingBetrayerCount )
+    {
+        foreach ( entity player in GetPlayerArray() )
+        {
+            if ( hasEnoughPlayer && lastBetrayedPlayerUIDs.contains( player.GetUID() ) )
+                continue
+
+            if ( pickedBetrayerPlayers.contains( player ) )
+                continue
+
+            if ( CoinFlip() )
+            {
+                pickedBetrayerPlayers.append( player )
+                break
             }
         }
-        wait 1
+    }
+
+    // start becoming betaryer
+    foreach ( entity player in pickedBetrayerPlayers )
+    {
+        PlayerBecomesBetrayer( player )
+        AppendStringIntoArrayConVar( "last_betrayed_players", player.GetUID() ) // store into convar
+    }
+}
+
+void function PlayerBecomesBetrayer( entity player )
+{
+    // kill them and send to intermissing cam, so they can respawn
+    player.Die( player, player, { damageSourceId = eDamageSourceId.team_switch } )
+    SetPlayerCameraToIntermissionCam( player )
+
+    SetTeam( player, VOPER_TEAM )
+    NSSendAnnouncementMessageToPlayer( player, "已被切換至背叛者玩家", "將獲得全屬性增強，不可離開泰坦", <1,1,0>, 1, 0 )
+
+    // add to in-file array
+    file.betrayedPlayerUIDs.append( player.GetUID() )
+    thread DelayedRemoveBetrayerPlayerDeathCount( player )
+}
+
+void function DelayedRemoveBetrayerPlayerDeathCount( entity player )
+{
+    WaitEndFrame() // wait for death being added by postDeathThread
+    if ( IsValid( player ) )
+        player.AddToPlayerGameStat( PGS_DEATHS, -1 )
+}
+
+void function ForceSetPlayerToMilitia()
+{//将玩家全部切换至反抗军
+    while ( true )
+    {
+        foreach ( entity player in GetPlayerArray() )
+        {
+            if ( !file.betrayedPlayerUIDs.contains( player.GetUID() ) && player.GetTeam() != TEAM_MILITIA )
+            {
+                SetTeam( player, TEAM_MILITIA )
+                entity petTitan = player.GetPetTitan()
+                if ( IsValid( petTitan ) )
+                    SetTeam( petTitan, TEAM_MILITIA )
+            }
+        }
+
+        WaitFrame()
         //TitanWeapon_ViperMod()
     }
 
@@ -321,6 +627,9 @@ void function StartIntro_BossViper( entity viper, int varient )
 
     EmitSoundOnEntity( viper, "music_s2s_14_titancombat" )
     WaitSignal( viper, "BossTitanIntroEnded" ) // intro reaches combat point
+
+    // start betrayer think
+    PickRandomBetrayerFromPlayers()
 
     // viper mover setup
     vector delta = <100,0,5000>
@@ -398,15 +707,31 @@ void function StartIntro_BossViper( entity viper, int varient )
 
 array<entity> function ViperGetTargetPlayers( bool heavyArmorOnly = false )
 {
+    entity voper = GetVoper()
     array<entity> validTargets
     foreach ( entity player in GetPlayerArray_Alive() )
     {
+        if ( IsValid( voper ) )
+        {
+            if ( voper.GetTeam() == player.GetTeam() )
+                continue
+        }
+
         if ( player.IsTitan() )
             validTargets.append( player )
     }
     if ( !heavyArmorOnly && validTargets.len() == 0 ) // no valid targets!!
     {
-        validTargets = GetPlayerArray_Alive()
+        foreach ( entity player in GetPlayerArray_Alive() )
+        {
+            if ( IsValid( voper ) )
+            {
+                if ( voper.GetTeam() == player.GetTeam() )
+                    continue
+            }
+
+            validTargets.append( player )
+        }
     }
 
     return validTargets
@@ -445,7 +770,7 @@ void function Phase1Think()
     // calculate wave points
     int wavePoints = WAVE_POINTS_PER_REAPER * count
     // wait for all reapers killed or 150s timeout
-    waitthread WaitForWaveTimeout( "phase1_ents", wavePoints, 150 )
+    waitthread WaitForWaveTimeout( "phase1_ents", wavePoints, FIRST_WAVE_TIMEOUT )
 
     thread Phase2Think()
     //thread RocketFireThink()
@@ -466,7 +791,7 @@ void function Phase2Think()
     // calculate wave points
     int wavePoints = WAVE_POINTS_PER_TITAN * count
     // wait for all titans killed or 180s timeout
-    waitthread WaitForWaveTimeout( "phase2_ents", wavePoints, 180 )
+    waitthread WaitForWaveTimeout( "phase2_ents", wavePoints, SECOND_WAVE_TIMEOUT )
 
     thread Phase3Think()
 
@@ -544,6 +869,11 @@ void function UnlimitedSpawn()
         entity voper = file.viperShip.model
         if ( !IsAlive( voper ) ) // voper died before loop!
             return
+        entity soul = voper.GetTitanSoul()
+        if ( !IsValid( soul ) )
+            return
+        if ( soul.IsDoomed() ) // doomed voper handled by Phase3Think()
+            return
 
         bool runWaveSpawn = true // if set to false, it means we won't run wave spawn for this loop
         float delayBeforeNextWave = 0.0
@@ -604,7 +934,7 @@ void function UnlimitedSpawn()
                         // calculate wave points. all titans + all reapers + half of infantries
                         int wavePoints = ( ( WAVE_POINTS_PER_INFANTRY * SQUAD_SIZE * squadSpawnCount ) / 2 ) + WAVE_POINTS_PER_REAPER * reaperSpawnCount + WAVE_POINTS_PER_TITAN * titanSpawnCount
                         // wait for required spawn, no timeout
-                        waitthread WaitForWaveTimeout( "phase3_ents", wavePoints, 150 ) // 150s timeout
+                        waitthread WaitForWaveTimeout( "phase3_ents", wavePoints, UNLIMITED_SPAWN_TIMEOUT ) // 150s timeout
                         break
 
                     case 2: // second wave
@@ -793,7 +1123,7 @@ void function CoreFire()
         WeaponViperAttackParams	viperParams = ViperSwarmRockets_SetupAttackParams( target.GetOrigin() - <0,0,200>, file.ref )
         // reworked... really should make them homing to player
         //OnWeaponScriptPrimaryAttack_ViperSwarmRockets_s2s( file.viper.GetActiveWeapon(), viperParams )
-        OnWeaponScriptPrimaryAttack_ViperSwarmRockets_s2s( file.viper.GetActiveWeapon(), viperParams, target, VOPER_CORE_ROCKET_HOMING_SPEED_SCALE )
+        OnWeaponScriptPrimaryAttack_ViperSwarmRockets_s2s( file.viper.GetActiveWeapon(), viperParams, target, VOPER_CORE_ROCKET_HOMING_SPEED_SCALE, VOPER_CORE_ROCKET_SPEED_SCALE )
         file.viper.Anim_Stop()
         file.viper.Anim_Play( "s2s_viper_flight_core_idle" )
         validShots += 1
@@ -862,10 +1192,11 @@ ShipStruct function GetVoperShip()
 
 entity function ViperGetEnemy( entity viper )
 {
-    if ( GetPlayerArray().len() == 0 )
+    array<entity> validTargets = ViperGetTargetPlayers()
+    if ( validTargets.len() == 0 )
         return file.ref
 
-    entity target = GetClosest2D( GetPlayerArray(), viper.GetOrigin(), 1000000000 )
+    entity target = GetClosest2D( validTargets, viper.GetOrigin(), 1000000000 )
 
     if ( !IsValid( target ) || !IsAlive( target ) )
         return file.ref
@@ -1056,6 +1387,11 @@ void function VoperBattle_GenericReaperSpawn( string waveEntName, int count )
         waitthread WaitForViperTargetSpawn() // wait for target spawn
 
         array<entity> validTargets = ViperGetTargetPlayers()
+        if ( validTargets.len() == 0 ) // defensive fix: still no target valid
+        {
+            x--
+            continue
+        }
         entity luckyPlayer = validTargets[ RandomInt( validTargets.len() ) ]
 
         Point dropPoint = GetHotDropSpawnPointFromLuckyPlayer( luckyPlayer )
@@ -1121,6 +1457,11 @@ void function VoperBattle_GenericTitanSpawn( string waveEntName, int count )
         waitthread WaitForViperTargetSpawn() // wait for target spawn
 
         array<entity> validTargets = ViperGetTargetPlayers()
+        if ( validTargets.len() == 0 ) // defensive fix: still no target valid
+        {
+            x--
+            continue
+        }
         entity luckyPlayer = validTargets[ RandomInt( validTargets.len() ) ]
 
         string titanToSpawn = TITAN_SPAWN_NAMES[ RandomInt( TITAN_SPAWN_NAMES.len() ) ]
@@ -1145,6 +1486,11 @@ void function VoperBattle_GenericNPCSquadSpawn( string waveEntName, int count, s
         waitthread WaitForViperTargetSpawn() // wait for target spawn
 
         array<entity> validTargets = ViperGetTargetPlayers()
+        if ( validTargets.len() == 0 ) // defensive fix: still no target valid
+        {
+            x--
+            continue
+        }
         entity luckyPlayer = validTargets[ RandomInt( validTargets.len() ) ]
 
         Point dropPoint = GetHotDropSpawnPointFromLuckyPlayer( luckyPlayer )
@@ -1189,6 +1535,11 @@ void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int c
         waitthread WaitForViperTargetSpawn() // wait for target spawn
 
         array<entity> validTargets = ViperGetTargetPlayers()
+        if ( validTargets.len() == 0 ) // defensive fix: still no target valid
+        {
+            x--
+            continue
+        }
         entity luckyPlayer = validTargets[ RandomInt( validTargets.len() ) ]
 
         Point dropPoint = GetHotDropSpawnPointFromLuckyPlayer( luckyPlayer )
@@ -1346,4 +1697,38 @@ void function VoperBattle_ScriptedDialogue( string dialogue )
     EmitSoundOnEntity( viper, dialogue )
     file.viperLastDialogue = dialogue
     MpBossTitan_DelayNextBossRandomLine( viper ) // delay viper's next random dialogue
+}
+
+
+//   ____ ___  _   ___     ___    ____      _   _ _____ ___ _     ___ _______   __
+//  / ___/ _ \| \ | \ \   / / \  |  _ \    | | | |_   _|_ _| |   |_ _|_   _\ \ / /
+// | |  | | | |  \| |\ \ / / _ \ | |_) |   | | | | | |  | || |    | |  | |  \ V / 
+// | |__| |_| | |\  | \ V / ___ \|  _ <    | |_| | | |  | || |___ | |  | |   | |  
+//  \____\___/|_| \_|  \_/_/   \_\_| \_\    \___/  |_| |___|_____|___| |_|   |_|  
+
+array<string> function GetStringArrayFromConVar( string convar )
+{
+    return split( GetConVarString( convar ), "," )
+}
+
+string function StoreStringArrayIntoConVar( string convar, array<string> arrayToStore )
+{
+    string builtString = ""
+    foreach ( string item in arrayToStore )
+    {
+        if ( builtString == "" )
+            builtString = item
+        else
+            builtString += "," + item
+    }
+
+    SetConVarString( convar, builtString )
+    return builtString
+}
+
+void function AppendStringIntoArrayConVar( string convar, string stringToAppend )
+{
+    array<string> convarArray = GetStringArrayFromConVar( convar )
+    convarArray.append( stringToAppend )
+    StoreStringArrayIntoConVar( convar, convarArray )
 }
