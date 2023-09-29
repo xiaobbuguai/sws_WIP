@@ -116,7 +116,7 @@ const array<string> BETRAYER_TITAN_LIMITED =
 ]
 
 const bool END_WAVE_ON_BETRAYER_WIPE = true // end curret wave if betrayers are wiped
-const int BETRAY_MIN_REQUIRED_PLAYERS = 1 // you need at least this amount of players to start betray
+const int BETRAY_MIN_REQUIRED_PLAYERS = 4 // you need at least this amount of players to start betray
 const float BETRAY_PLAYER_PERCENTAGE = 0.2 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
 
 // full-match betrayer
@@ -145,6 +145,10 @@ struct
 
     vector origin_ref
     string viperLastDialogue
+
+    // music
+    string musicPlaying
+    table<entity, string> playerMusicPlaying
 
     // settings storing
     bool titanExitDisabledOnStart
@@ -201,6 +205,9 @@ void function VoperBattle_Init()
 		10												// decal index
 	)
 
+    // music
+    AddCallback_OnClientConnected( OnClientConnected )
+
     // wave spawns
     RegisterSignal( "VoperWaveTransfer" )
     RegisterSignal( "VoperWaveEnd" )
@@ -224,6 +231,13 @@ void function VoperBattle_Init()
     // debug
     AddClientCommandCallback( "voper_battle", CC_ForceStartVoperBattle )
     AddClientCommandCallback( "clear_non_voper_npc", CC_ClearNonVoperNPCs )
+}
+
+void function OnClientConnected( entity player )
+{
+    file.playerMusicPlaying[ player ] <- ""
+
+    PlayCurrentScriptedMusicToPlayer( player )
 }
 
 void function VoperBossTitanSetup( entity titan )
@@ -926,7 +940,7 @@ void function StartIntro_BossViper( entity viper, int varient )
     viper.EndSignal( "OnDeath" )
     viper.EndSignal( "OnDestroy" )
 
-    EmitSoundOnEntity( viper, "music_s2s_14_titancombat" )
+    PlayScriptedMusicToAllPlayers( "music_s2s_14_titancombat" )
     WaitSignal( viper, "BossTitanIntroEnded" ) // intro reaches combat point
 
     // viper mover setup
@@ -1133,6 +1147,7 @@ void function Phase3Think()
     //AddTeamScore( TEAM_MILITIA, 10000 )
     //AddTeamScore( TEAM_IMC, 10000 )
     AddTeamScore( GetOtherTeam( VOPER_TEAM ), 10000 )
+    StopScriptedMusicForAllPlayers()
 }
 
 void function BossAshAssistThink()
@@ -2026,6 +2041,51 @@ bool function TryRechargePlayerTitanMeter( entity player )
     }
 
     return false
+}
+
+void function PlayScriptedMusicToAllPlayers( string musicName )
+{
+    file.musicPlaying = musicName
+
+    foreach ( entity player in GetPlayerArray() )
+    {
+        PlayCurrentScriptedMusicToPlayer( player )
+    }
+}
+
+// on connection
+void function PlayCurrentScriptedMusicToPlayer( entity player )
+{
+    thread PlayCurrentScriptedMusicToPlayer_Threaded( player )
+}
+
+void function PlayCurrentScriptedMusicToPlayer_Threaded( entity player )
+{
+    player.EndSignal( "OnDestroy" )
+    WaitFrame() // wait for player can receive server signals
+    print( "file.musicPlaying: " + file.musicPlaying )
+    if ( file.musicPlaying != "" )
+    {
+        EmitSoundOnEntityOnlyToPlayer( player, player, file.musicPlaying )
+        file.playerMusicPlaying[ player ] = file.musicPlaying
+    }
+}
+
+void function StopScriptedMusicForAllPlayers()
+{
+    foreach ( entity player in GetPlayerArray() )
+    {
+        StopLastScriptedMusicForPlayer( player )
+    }
+    file.musicPlaying = ""
+}
+
+void function StopLastScriptedMusicForPlayer( entity player )
+{
+    if ( file.playerMusicPlaying[ player ] == "" )
+        return
+    EmitSoundOnEntityOnlyToPlayer( player, player, file.playerMusicPlaying[ player ] )
+    file.playerMusicPlaying[ player ] = ""
 }
 
 void function VoperBattle_ScriptedDialogue( string dialogue )
