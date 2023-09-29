@@ -118,7 +118,7 @@ const array<string> BETRAYER_TITAN_LIMITED =
 
 const bool END_WAVE_ON_BETRAYER_WIPE = true // end curret wave if betrayers are wiped
 const int BETRAY_MIN_REQUIRED_PLAYERS = 6 // you need at least this amount of players to start betray,before is 4
-const float BETRAY_PLAYER_PERCENTAGE = 0.3 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
+const float BETRAY_PLAYER_PERCENTAGE = 0.1 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
 
 // full-match betrayer
 const float BETRAYED_PLAYER_RESPAWN_DELAY = 20.0
@@ -126,7 +126,7 @@ const float BETRAYED_PLAYER_RESPAWN_DELAY = 20.0
 const float BETRAYED_PLAYER_HEALTH_SCALE = 4.0 // betrayed player's health scale,before is 2.0
 const float BETRAYED_PLAYER_DAMAGE_REDUCTION_SCALE = 0.5 // 0.5x damage reduction prettymuch means 2x health
 const int BETRAYED_PLAYER_DOOMED_HEALTH = 8000 // betrayed player's doomed health value
-const float BETRAYED_PLAYER_SHIELD_SCALE = 3.0 // betrayed player's shield scale
+const float BETRAYED_PLAYER_SHIELD_SCALE = 4.0 // betrayed player's shield scale
 const float BETRAYED_PLAYER_SHIELD_REGEN_TIME = 3.0 // time required to regen shield to full
 const float BETRAYED_PLAYER_SHIELD_REGEN_DELAY = 3.0 // how long the betaryed player can start regen shield
 const float BETRAYED_PLAYER_CORE_MULTIPLIER = 10.0 // beteryed player's core meter multiplier
