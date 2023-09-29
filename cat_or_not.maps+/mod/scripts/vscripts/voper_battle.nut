@@ -59,17 +59,19 @@ const int WAVE_POINTS_PER_TITAN = 10 // a titan unit worth 10 wave point
 const int WAVE_POINTS_PER_REAPER = 5 // a reaper unit woth 5 wave points
 
 // wave settings
+const float PHASE_TRANSITION_DELAY = 5.0
+const bool WAVE_CLEANUP_ON_END = true // clean up all spawned npcs on wave end
 // 1st wave( phase1 )
 const int FIRST_WAVE_REAPERS_COUNT = 10
-const float FIRST_WAVE_TIMEOUT = 150
+const float FIRST_WAVE_TIMEOUT = -1 // -1 means infinite timeout
 // 2nd wave( phase2 )
 const int SECOND_WAVE_TITANS_COUNT = 7
-const float SECOND_WAVE_TIMEOUT = 150
+const float SECOND_WAVE_TIMEOUT = -1 // -1 means infinite timeout
 // unlimited spawn wave( phase3 )
 const int UNLIMITED_SPAWN_SQUADS_COUNT = 5
 const int UNLIMITED_SPAWN_REAPERS_COUNT = 4
 const int UNLIMITED_SPAWN_TITANS_COUNT = 3
-const float UNLIMITED_SPAWN_TIMEOUT = 120
+const float UNLIMITED_SPAWN_TIMEOUT = -1 // -1 means infinite timeout
 
 // notification settings
 // WIP
@@ -113,7 +115,8 @@ const array<string> BETRAYER_TITAN_LIMITED =
     "scorch",
 ]
 
-const int BETRAY_MIN_REQUIRED_PLAYERS = 4 // you need at least this amount of players to start betray
+const bool END_WAVE_ON_BETRAYER_WIPE = true // end curret wave if betrayers are wiped
+const int BETRAY_MIN_REQUIRED_PLAYERS = 1 // you need at least this amount of players to start betray
 const float BETRAY_PLAYER_PERCENTAGE = 0.2 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
 
 // full-match betrayer
@@ -199,7 +202,8 @@ void function VoperBattle_Init()
 	)
 
     // wave spawns
-    RegisterSignal( "WaveTransfer" )
+    RegisterSignal( "VoperWaveTransfer" )
+    RegisterSignal( "VoperWaveEnd" )
     // unused, already handled by normal wave spawns
     //AddDeathCallback( "npc_soldier" )
     //AddDeathCallback( "npc_super_spectre" )
@@ -207,6 +211,9 @@ void function VoperBattle_Init()
 
     // betrayer
     RegisterSignal( "TrackPlayerLeavingTitan" )
+    RegisterSignal( "OnBetrayerDeath" )
+    // track betrayer death
+    AddDeathCallback( "player", OnPlayerKilled )
     // for titan limitation
     AddCallback_OnTryGetTitanLoadout( OnTryGetTitanLoadout )
     // for betrayer playstyle restriction
@@ -216,7 +223,7 @@ void function VoperBattle_Init()
 
     // debug
     AddClientCommandCallback( "voper_battle", CC_ForceStartVoperBattle )
-    AddClientCommandCallback( "clear_non_voper_npc", CC_ClearNonViperNPCs )
+    AddClientCommandCallback( "clear_non_voper_npc", CC_ClearNonVoperNPCs )
 }
 
 void function VoperBossTitanSetup( entity titan )
@@ -228,6 +235,16 @@ void function VoperBossTitanSetup( entity titan )
 		// disable their ejecting, so players won't easily notice that they have no proper model
 		TitanHealth_SetSoulNPCPilotEjectDelay( soul, -1 ) // -1 means never eject
 	}
+}
+
+void function OnPlayerKilled( entity player, var damageInfo )
+{
+    // team switch don't count as anything
+    if ( DamageInfo_GetDamageSourceIdentifier( damageInfo ) == eDamageSourceId.team_switch )
+        return
+
+    if ( IsPlayerBetrayer( player ) )
+        player.Signal( "OnBetrayerDeath" ) // this will end TrackBetrayedPlayerLifeTime() thread
 }
 
 sTryGetTitanLoadoutCallbackReturn function OnTryGetTitanLoadout( entity player, TitanLoadoutDef loadout, bool wasChanged )
@@ -271,6 +288,18 @@ bool function IsPlayerBetrayer( entity player )
         return true
 
     return false
+}
+
+array<entity> function GetAllBetrayedPlayers()
+{
+    array<entity> betrayedPlayers 
+    foreach ( entity player in GetPlayerArray() )
+    {
+        if ( IsPlayerBetrayer( player ) )
+            betrayedPlayers.append( player )
+    }
+
+    return betrayedPlayers
 }
 
 // a copy of RespawnAsTitan(), without killing player
@@ -514,7 +543,7 @@ bool function CC_ForceStartVoperBattle( entity player, array<string> args )
     return true
 }
 
-bool function CC_ClearNonViperNPCs( entity player, array<string> args )
+bool function CC_ClearNonVoperNPCs( entity player, array<string> args )
 {
     hadGift_Admin = false;
 	CheckAdmin( player );
@@ -524,13 +553,24 @@ bool function CC_ClearNonViperNPCs( entity player, array<string> args )
 		return false;
 	}
 
+    ClearNonVoperNPCs()
+
+    return true
+}
+
+void function ClearNonVoperNPCs( string forcedScriptName = "" )
+{
     foreach ( entity npc in GetNPCArray() )
     {
+        if ( forcedScriptName != "" )
+        {
+            if ( npc.GetScriptName() != forcedScriptName )
+                continue
+        }
+
         if ( IsAlive( npc ) && npc != file.viper )
             npc.Die()
     }
-
-    return true
 }
 
 void function StartVoperBattle( int varient )
@@ -660,6 +700,9 @@ void function PickRandomBetrayerFromPlayers()
         int pendingBetrayerCount = int( GetPlayerArray().len() * BETRAY_PLAYER_PERCENTAGE )
         if ( pendingBetrayerCount <= 0 )
             pendingBetrayerCount = 1
+        pendingBetrayerCount -= GetAllBetrayedPlayers().len()
+        if ( pendingBetrayerCount <= 0 )
+            return
 
         // first search for all valid betrayer players
         foreach ( entity player in GetPlayerArray() )
@@ -712,6 +755,9 @@ void function PickRandomBetrayerFromPlayers()
         int pendingBetrayerCount = int( GetPlayerArray().len() * BETRAY_PLAYER_PERCENTAGE )
         if ( pendingBetrayerCount <= 0 )
             pendingBetrayerCount = 1
+        pendingBetrayerCount -= GetAllBetrayedPlayers().len()
+        if ( pendingBetrayerCount <= 0 )
+            return
 
         // first search for all valid betrayer players
         foreach ( entity player in GetPlayerArray() )
@@ -763,6 +809,21 @@ void function PlayerBecomesBetrayer( entity player )
 
 void function PlayerBecomesBetrayer_Threaded( entity player )
 {
+    // full match betray: longer respawn delay
+    if ( MAP_BETRAYER_TYPE[ GetMapName() ] == ePlayerBetrayType.BETRAY_FULL_MATCH )
+    {
+        SetPlayerRespawnDelayForced( player, BETRAYED_PLAYER_RESPAWN_DELAY )
+        file.betrayedPlayerUIDs.append( player.GetUID() )
+    }
+    // one-life betray
+    else if ( MAP_BETRAYER_TYPE[ GetMapName() ] == ePlayerBetrayType.BETRAY_ONE_LIFE )
+    {
+        thread TrackBetrayedPlayerLifeTime( player )
+        // add to in-file array
+        file.betrayedPlayers.append( player )
+    }
+
+    // killing betrayer think
     if ( player.isSpawning ) // is respawning as titan?
     {
         while ( !player.IsTitan() )
@@ -777,20 +838,6 @@ void function PlayerBecomesBetrayer_Threaded( entity player )
     NSSendAnnouncementMessageToPlayer( player, "已被切換至背叛者玩家", "將獲得全屬性增強，不可離開泰坦", <1,1,0>, 1, 0 )
     
     thread DelayedRemoveBetrayerPlayerDeathCount( player )
-
-    // full match betray: longer respawn delay
-    if ( MAP_BETRAYER_TYPE[ GetMapName() ] == ePlayerBetrayType.BETRAY_FULL_MATCH )
-    {
-        SetPlayerRespawnDelayForced( player, BETRAYED_PLAYER_RESPAWN_DELAY )
-        file.betrayedPlayerUIDs.append( player.GetUID() )
-    }
-    // one-life betray
-    else if ( MAP_BETRAYER_TYPE[ GetMapName() ] == ePlayerBetrayType.BETRAY_ONE_LIFE )
-    {
-        thread TrackBetrayedPlayerLifeTime( player )
-        // add to in-file array
-        file.betrayedPlayers.append( player )
-    }
 }
 
 void function DelayedRemoveBetrayerPlayerDeathCount( entity player )
@@ -802,16 +849,46 @@ void function DelayedRemoveBetrayerPlayerDeathCount( entity player )
 
 void function TrackBetrayedPlayerLifeTime( entity player )
 {
-    ArrayRemoveDead( file.livingBetrayedPlayers )
-    WaitEndFrame() // wait for player's death
-    if ( !IsValid( player ) )
-        return
+    player.EndSignal( "OnDestroy" )
+    player.EndSignal( "OnBetrayerDeath" )
+    ArrayRemoveInvalid( file.livingBetrayedPlayers )
+
+    table results = {
+        waveEndedProperly = false
+    }
+    OnThreadEnd
+    (
+        function(): ( player, results )
+        {
+            if ( IsValid( player ) )
+            {
+                if ( IsAlive( player ) )
+                    player.Die( player, player, { damageSourceId = eDamageSourceId.outOfBounds } )
+                file.livingBetrayedPlayers.removebyvalue( player )
+                NSSendInfoMessageToPlayer( player, "背叛狀態已結束" )
+            }
+            ArrayRemoveInvalid( file.livingBetrayedPlayers )
+            // all betrayers died
+            if ( file.livingBetrayedPlayers.len() == 0 )
+            {
+                #if END_WAVE_ON_BETRAYER_WIPE
+                    if ( !results.waveEndedProperly )
+                        svGlobal.levelEnt.Signal( "VoperWaveEnd" )
+                #endif
+                /*
+                foreach ( entity otherPlayer in GetPlayerArrayOfTeam( GetOtherTeam( VOPER_TEAM ) ) )
+                {
+                    if ( player != otherPlayer )
+                        NSSendAnnouncementMessageToPlayer( player, "全部背叛者已被清除", "波次結束", <1,0,0>, 1, 0 )
+                }
+                */
+            }
+        }
+    )
 
     file.livingBetrayedPlayers.append( player )
-    WaitSignal( player, "OnDeath", "OnDestroy" )
-    file.livingBetrayedPlayers.removebyvalue( player )
-    if ( IsValid( player ) )
-        NSSendInfoMessageToPlayer( player, "背叛狀態已結束" )
+    svGlobal.levelEnt.WaitSignal( "VoperWaveEnd" )
+    results.waveEndedProperly = true
 }
 
 void function ForceSetPlayerToMilitia()
@@ -996,6 +1073,7 @@ void function Phase1Think()
     // wait for all reapers killed or 150s timeout
     waitthread WaitForWaveTimeout( "phase1_ents", wavePoints, FIRST_WAVE_TIMEOUT )
 
+    wait PHASE_TRANSITION_DELAY
     thread Phase2Think()
     //thread RocketFireThink()
 }
@@ -1020,8 +1098,8 @@ void function Phase2Think()
     // wait for all titans killed or 180s timeout
     waitthread WaitForWaveTimeout( "phase2_ents", wavePoints, SECOND_WAVE_TIMEOUT )
 
+    wait PHASE_TRANSITION_DELAY
     thread Phase3Think()
-
 }
 
 void function Phase3Think()
@@ -1143,48 +1221,46 @@ void function UnlimitedSpawn()
         }
 
         // wave
-        #if !VOPER_BATTLE_DEBUG // disable wave transation in debug
-            if ( runWaveSpawn )
+        if ( runWaveSpawn )
+        {
+            print( "PassWaves" )
+            switch ( PassWaves )
             {
-                print( "PassWaves" )
-                switch ( PassWaves )
-                {
-                    case 1: // first wave
-                        // wave type: npc spawn
-                        print( "wave type: npc spawn" )
-                        // start betrayer think
-                        PickRandomBetrayerFromPlayers()
-                        // start wave!
-                        VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_22_01_imc_viper" )
-                        voper.SetInvulnerable()
-                        const int squadSpawnCount = UNLIMITED_SPAWN_SQUADS_COUNT
-                        const int reaperSpawnCount = UNLIMITED_SPAWN_REAPERS_COUNT
-                        const int titanSpawnCount = UNLIMITED_SPAWN_TITANS_COUNT
-                        thread VoperBattle_GenericSpecialistSquadSpawn( "phase3_ents", squadSpawnCount, "npc_soldier", "npc_soldier_shield_captain" ) // 5 shield captain squad
-                        thread VoperBattle_GenericReaperSpawn( "phase3_ents", reaperSpawnCount ) // 4 tick reapers
-                        thread VoperBattle_GenericTitanSpawn( "phase3_ents", titanSpawnCount ) // 3 npc titans
-                        // calculate wave points. all titans + all reapers + half of infantries
-                        int wavePoints = ( ( WAVE_POINTS_PER_INFANTRY * SQUAD_SIZE * squadSpawnCount ) / 2 ) + WAVE_POINTS_PER_REAPER * reaperSpawnCount + WAVE_POINTS_PER_TITAN * titanSpawnCount
-                        // wait for required spawn, no timeout
-                        waitthread WaitForWaveTimeout( "phase3_ents", wavePoints, UNLIMITED_SPAWN_TIMEOUT ) // 150s timeout
-                        break
+                case 1: // first wave
+                    // wave type: npc spawn
+                    print( "wave type: npc spawn" )
+                    // start betrayer think
+                    PickRandomBetrayerFromPlayers()
+                    // start wave!
+                    VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_22_01_imc_viper" )
+                    voper.SetInvulnerable()
+                    const int squadSpawnCount = UNLIMITED_SPAWN_SQUADS_COUNT
+                    const int reaperSpawnCount = UNLIMITED_SPAWN_REAPERS_COUNT
+                    const int titanSpawnCount = UNLIMITED_SPAWN_TITANS_COUNT
+                    thread VoperBattle_GenericSpecialistSquadSpawn( "phase3_ents", squadSpawnCount, "npc_soldier", "npc_soldier_shield_captain" ) // 5 shield captain squad
+                    thread VoperBattle_GenericReaperSpawn( "phase3_ents", reaperSpawnCount ) // 4 tick reapers
+                    thread VoperBattle_GenericTitanSpawn( "phase3_ents", titanSpawnCount ) // 3 npc titans
+                    // calculate wave points. all titans + all reapers + half of infantries
+                    int wavePoints = ( ( WAVE_POINTS_PER_INFANTRY * SQUAD_SIZE * squadSpawnCount ) / 2 ) + WAVE_POINTS_PER_REAPER * reaperSpawnCount + WAVE_POINTS_PER_TITAN * titanSpawnCount
+                    // wait for required spawn, no timeout
+                    waitthread WaitForWaveTimeout( "phase3_ents", wavePoints, UNLIMITED_SPAWN_TIMEOUT ) // 150s timeout
+                    break
 
-                    case 2: // second wave
-                        // wave type: viper health
-                        print( "wave type: viper health" )
-                        delayBeforeNextWave = 5.0 // next wave delay 
+                case 2: // second wave
+                    // wave type: viper health
+                    print( "wave type: viper health" )
+                    delayBeforeNextWave = 5.0 // next wave delay 
 
-                        // start wave!
-                        VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_36_01_imc_viper" )
-                        waitthread WaitForVoperHealthLossPercentage( 0.1 ) // wait for viper loses 10% of health
-                        break
+                    // start wave!
+                    VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_36_01_imc_viper" )
+                    waitthread WaitForVoperHealthLossPercentage( 0.1 ) // wait for viper loses 10% of health
+                    break
 
-                    default: // reach max wave spawns
-                        PassWaves = 0 // start from first wave
-                        break
-                }
+                default: // reach max wave spawns
+                    PassWaves = 0 // start from first wave
+                    break
             }
-        #endif // !VOPER_BATTLE_DEBUG
+        }
 
         if ( delayBeforeNextWave > 0 )
             wait delayBeforeNextWave
@@ -1574,7 +1650,9 @@ void function SetupVoperBattleSpawnedNPC( entity npc, string scriptName, int wav
 
 void function WaitForNPCDeath( entity npc, string scriptName, int wavePoint )
 {
-    svGlobal.levelEnt.EndSignal( "WaveTransfer" ) // we stop counting if wave transfering
+    // we stop counting if wave transfering
+    svGlobal.levelEnt.EndSignal( "VoperWaveTransfer" ) 
+    svGlobal.levelEnt.EndSignal( "VoperWaveEnd" )
     string scriptName = npc.GetScriptName()
     WaitSignal( npc, "OnDeath", "OnDestroy" )
 
@@ -1613,7 +1691,11 @@ void function VoperBattle_GenericReaperSpawn( string waveEntName, int count )
         }
     ) // npc handler
 
+    // we stop spawning if wave transfering
+    svGlobal.levelEnt.EndSignal( "VoperWaveEnd" )
+
     WaitEndFrame() // wait so WaitForWaveTimeout() can set up
+
     for( int x = 0; x < count; x++ )
     {
         waitthread WaitForViperTargetSpawn() // wait for target spawn
@@ -1675,7 +1757,11 @@ void function VoperBattle_GenericTitanSpawn( string waveEntName, int count )
         }
     )
 
+    // we stop spawning if wave transfering
+    svGlobal.levelEnt.EndSignal( "VoperWaveEnd" )
+
     WaitEndFrame() // wait so WaitForWaveTimeout() can set up
+
     // valid titan enemies
     const array<string> TITAN_SPAWN_NAMES =
     [
@@ -1716,7 +1802,11 @@ void function VoperBattle_GenericTitanSpawn( string waveEntName, int count )
 
 void function VoperBattle_GenericNPCSquadSpawn( string waveEntName, int count, string squadClass )
 {
+    // we stop spawning if wave transfering
+    svGlobal.levelEnt.EndSignal( "VoperWaveEnd" )
+    
     WaitEndFrame() // wait so WaitForWaveTimeout() can set up
+
     for( int x = 0; x < count; x++ )
     {
         waitthread WaitForViperTargetSpawn() // wait for target spawn
@@ -1765,7 +1855,11 @@ void function VoperBattle_GenericNPCSquadSpawn( string waveEntName, int count, s
 
 void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int count, string squadClass, string leaderAiSet )
 {
+    // we stop spawning if wave transfering
+    svGlobal.levelEnt.EndSignal( "VoperWaveEnd" )
+
     WaitEndFrame() // wait so WaitForWaveTimeout() can set up
+
     for( int x = 0; x < count; x++ )
     {
         waitthread WaitForViperTargetSpawn() // wait for target spawn
@@ -1833,8 +1927,21 @@ void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int c
 
 void function WaitForWaveTimeout( string waveEntName, int wavePointsNeeded, float maxTimeout )
 {
-    svGlobal.levelEnt.Signal( "WaveTransfer" ) // stop current counting wave
+    svGlobal.levelEnt.Signal( "VoperWaveTransfer" ) // stop current counting wave
+    svGlobal.levelEnt.EndSignal( "VoperWaveEnd" ) // signaled on all betrayer death
     file.pendingWaveTimeouts[ waveEntName ] <- 0
+
+    OnThreadEnd
+    (
+        function(): ( waveEntName )
+        {
+            print( "waveEnt: " + waveEntName + " ended!" )
+            delete file.pendingWaveTimeouts[ waveEntName ]
+            #if WAVE_CLEANUP_ON_END
+                ClearNonVoperNPCs( waveEntName )
+            #endif
+        }
+    )
 
     float maxWait = Time() + maxTimeout
     if ( maxTimeout < 0 )
@@ -1850,8 +1957,7 @@ void function WaitForWaveTimeout( string waveEntName, int wavePointsNeeded, floa
     }
 
     // wave ended!
-    print( "waveEnt: " + waveEntName + " ended!" )
-    delete file.pendingWaveTimeouts[ waveEntName ]
+    svGlobal.levelEnt.Signal( "VoperWaveEnd" ) // stop current counting wave
 }
 
 void function WaitForVoperHealthLossPercentage( float percentage )
