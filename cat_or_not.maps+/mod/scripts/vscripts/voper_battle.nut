@@ -54,6 +54,7 @@ const float NPC_TITAN_CORE_METER_MULTIPLIER = 2.5 // npc titan's core multiplier
 const float NPC_TITAN_EJECTING_DELAY = 3.0 // npc pilot ejecting delay after doom
 
 // wave point settings
+// THESE ARE NO NEED TO CHANGE, ONLY FOR IN-FILE CALCULATIONS
 const int WAVE_POINTS_PER_INFANTRY = 1 // an infantry unit worth 1 wave point
 const int WAVE_POINTS_PER_TITAN = 10 // a titan unit worth 10 wave point
 const int WAVE_POINTS_PER_REAPER = 5 // a reaper unit woth 5 wave points
