@@ -25,8 +25,8 @@ const vector Player_SpawnPoint_Voper = < -151, 1091, 1490 >
 const int VOPER_TEAM = TEAM_IMC
 // voper settings
 const int VOPER_MAX_HEALTH = 90000 // 90000 health with 0.8 damage reduction ~= 450000 health
-const float VOPER_DAMAGE_SCALE = 3.5 // voper deals 2.5x damage to players
-const float VOPER_DAMAGE_REDUCTION_SCALE = 0.8
+const float VOPER_DAMAGE_SCALE = 5 // voper deals 2.5x damage to players
+const float VOPER_DAMAGE_REDUCTION_SCALE = 0.9
 // voper health settings
 const float VOPER_MIN_HEALTH_FRAC = 0.03 // viper will keep 3% of health before getting killed
 const float SARAH_QUEST_VOPER_HEALTH_FRAC = 0.3 // in homestead, game will start SarahDefenseThink() if viper reaches this percentage of health or lower
@@ -41,14 +41,14 @@ const float VOPER_CORE_ROCKET_HOMING_SPEED_SCALE = 2.5 // homing speed scale for
 
 // ash assist
 const int ASH_MAX_HEALTH = 90000 //  e.g.:90000 health with 0.5 damage reduction ~= 180000 health
-const float ASH_DAMAGE_SCALE = 3.5 // befor is 2
-const float ASH_DAMAGE_REDUCTION_SCALE = 0.7 //0.5
+const float ASH_DAMAGE_SCALE = 5 // befor is 2
+const float ASH_DAMAGE_REDUCTION_SCALE = 0.9 //0.5
 const float ASH_CORE_METER_MULTIPLIER = 6.0 // ash's core multiplier
 
 // npc health settings
-const float INFANTRY_HEALTH_SCALE = 2.5 //2.0before
-const float TITAN_HEALTH_SCALE = 3.5 //1.5
-const float REAPER_HEALTH_SCALE = 2.5 //2.0before
+const float INFANTRY_HEALTH_SCALE = 3.5 //2.0before
+const float TITAN_HEALTH_SCALE = 5 //1.5
+const float REAPER_HEALTH_SCALE = 4 //2.0before
 // npc damage
 const float NPC_TITAN_CORE_METER_MULTIPLIER = 3 // npc titan's core multiplier,before is 2.5
 const float NPC_TITAN_EJECTING_DELAY = 2.5 // npc pilot ejecting delay after doom,before is3.0
@@ -60,7 +60,7 @@ const int WAVE_POINTS_PER_TITAN = 10 // a titan unit worth 10 wave point
 const int WAVE_POINTS_PER_REAPER = 5 // a reaper unit woth 5 wave points
 
 // wave settings
-const float PHASE_TRANSITION_DELAY = 5.0
+const float PHASE_TRANSITION_DELAY = 15.0  //before 5.0
 const bool WAVE_CLEANUP_ON_END = true // clean up all spawned npcs on wave end
 // 1st wave( phase1 )
 const int FIRST_WAVE_REAPERS_COUNT = 15 //10 before
@@ -118,7 +118,7 @@ const array<string> BETRAYER_TITAN_LIMITED =
 
 const bool END_WAVE_ON_BETRAYER_WIPE = true // end curret wave if betrayers are wiped
 const int BETRAY_MIN_REQUIRED_PLAYERS = 6 // you need at least this amount of players to start betray,before is 4
-const float BETRAY_PLAYER_PERCENTAGE = 0.2 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
+const float BETRAY_PLAYER_PERCENTAGE = 0.3 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
 
 // full-match betrayer
 const float BETRAYED_PLAYER_RESPAWN_DELAY = 20.0
@@ -126,7 +126,7 @@ const float BETRAYED_PLAYER_RESPAWN_DELAY = 20.0
 const float BETRAYED_PLAYER_HEALTH_SCALE = 4.0 // betrayed player's health scale,before is 2.0
 const float BETRAYED_PLAYER_DAMAGE_REDUCTION_SCALE = 0.5 // 0.5x damage reduction prettymuch means 2x health
 const int BETRAYED_PLAYER_DOOMED_HEALTH = 8000 // betrayed player's doomed health value
-const float BETRAYED_PLAYER_SHIELD_SCALE = 5.0 // betrayed player's shield scale
+const float BETRAYED_PLAYER_SHIELD_SCALE = 3.0 // betrayed player's shield scale
 const float BETRAYED_PLAYER_SHIELD_REGEN_TIME = 3.0 // time required to regen shield to full
 const float BETRAYED_PLAYER_SHIELD_REGEN_DELAY = 3.0 // how long the betaryed player can start regen shield
 const float BETRAYED_PLAYER_CORE_MULTIPLIER = 10.0 // beteryed player's core meter multiplier
