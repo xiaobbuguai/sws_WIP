@@ -75,9 +75,45 @@ const float UNLIMITED_SPAWN_TIMEOUT = 120
 //const int WAVE_PROGRESS_HUD_ENABLED = true // may cause unexpected crash and client-side stuck. don't know why, better rework sh_message_utils.gnut?
 
 // betrayer settings
-const int BETRAY_MIN_REQUIRED_PLAYERS = 3 // you need at least this amount of players to start betray
+enum ePlayerBetrayType
+{
+    BETRAY_FULL_MATCH,
+    BETRAY_ONE_LIFE,
+}
+
+const table<string, int> MAP_BETRAYER_TYPE =
+{
+    ["mp_homestead"]            = ePlayerBetrayType.BETRAY_ONE_LIFE,
+
+    ["mp_colony02"]             = ePlayerBetrayType.BETRAY_ONE_LIFE,
+    ["mp_forwardbase_kodai"]    = ePlayerBetrayType.BETRAY_ONE_LIFE,
+    ["mp_black_water_canal"]    = ePlayerBetrayType.BETRAY_ONE_LIFE,
+    ["mp_drydock"]              = ePlayerBetrayType.BETRAY_ONE_LIFE,
+    ["mp_eden"]                 = ePlayerBetrayType.BETRAY_ONE_LIFE,
+    ["mp_thaw"]                 = ePlayerBetrayType.BETRAY_ONE_LIFE,
+    ["mp_glitch"]               = ePlayerBetrayType.BETRAY_ONE_LIFE,
+    ["mp_relic02"]              = ePlayerBetrayType.BETRAY_ONE_LIFE,
+    ["mp_wargames"]             = ePlayerBetrayType.BETRAY_ONE_LIFE,
+}
+
+const array<string> BETRAYER_TITAN_LIMITED =
+[
+    "ion",
+    "tone",
+    "northstar",
+    "ronin",
+    "legion",
+    "scorch",
+]
+
+const int BETRAY_MIN_REQUIRED_PLAYERS = 1 // you need at least this amount of players to start betray
 const float BETRAY_PLAYER_PERCENTAGE = 0.2 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
+
+// full-match betrayer
+const float BETRAYED_PLAYER_RESPAWN_DELAY = 20.0
+
 const float BETRAYED_PLAYER_HEALTH_SCALE = 2.0 // betrayed player's health scale
+const float BETRAYED_PLAYER_DAMAGE_REDUCTION_SCALE = 0.5 // 0.5x damage reduction prettymuch means 2x health
 const int BETRAYED_PLAYER_DOOMED_HEALTH = 8000 // betrayed player's doomed health value
 const float BETRAYED_PLAYER_SHIELD_SCALE = 2.0 // betrayed player's shield scale
 const float BETRAYED_PLAYER_SHIELD_REGEN_TIME = 3.0 // time required to regen shield to full
@@ -108,9 +144,10 @@ struct
     table<string, int> pendingWaveTimeouts
 
     // betrayer
+    bool fullMatchBetrayedPicked = false
     array<string> betrayedPlayerUIDs
-    // local debug version
     array<entity> betrayedPlayers
+    array<entity> livingBetrayedPlayers
 } file
 
 void function VoperBattle_Init()
@@ -163,6 +200,8 @@ void function VoperBattle_Init()
 
     // betrayer
     RegisterSignal( "TrackPlayerLeavingTitan" )
+    // for titan limitation
+    AddCallback_OnTryGetTitanLoadout( OnTryGetTitanLoadout )
     // for betrayer playstyle restriction
     AddCallback_OnPlayerRespawned( OnPlayerRespawned )
     // for updating betrayer titan loadout
@@ -184,6 +223,23 @@ void function VoperBossTitanSetup( entity titan )
 	}
 }
 
+sTryGetTitanLoadoutCallbackReturn function OnTryGetTitanLoadout( entity player, TitanLoadoutDef loadout, bool wasChanged )
+{
+    sTryGetTitanLoadoutCallbackReturn returnStruct
+    returnStruct.wasChanged = false
+    returnStruct.loadout = loadout
+    if ( IsPlayerBetrayer( player ) && !BETRAYER_TITAN_LIMITED.contains( loadout.titanClass ) )
+    {
+        print( "Updating betrayer player loadout!" )
+        returnStruct.wasChanged = true
+        returnStruct.loadout = GetTitanLoadoutFromPersistentData( player, 0 )
+        print( "returnStruct.loadout.titanClass: " + returnStruct.loadout.titanClass )
+        //SendHudMessage( player, "背叛者不可用帝王", -1, -0.35, 255, 255, 0, 255, 0, 5, 0 )
+    }
+    
+    return returnStruct
+}
+
 void function OnPlayerRespawned( entity player )
 {
     bool respawnAsTitan = expect bool( player.GetPersistentVar( "spawnAsTitan" ) ) || Riff_SpawnAsTitan() == 1
@@ -193,17 +249,21 @@ void function OnPlayerRespawned( entity player )
     if ( player.IsTitan() || IsValid( player.GetPetTitan() ) )
         return
 
-    // local debug version
-#if VOPER_BATTLE_DEBUG
-    if ( file.betrayedPlayers.contains( player ) )
-#else
-    if ( file.betrayedPlayerUIDs.contains( player.GetUID() ) )
-#endif
+    if ( IsPlayerBetrayer( player ) )
     {
         print( "Betrayer player respawned! Setting to titan" )
         // this will change player to spectator, no worries
         thread ReplaceBetrayerAsTitan( player )
     }
+}
+
+bool function IsPlayerBetrayer( entity player )
+{
+    if ( ( MAP_BETRAYER_TYPE[ GetMapName() ] == ePlayerBetrayType.BETRAY_ONE_LIFE && file.livingBetrayedPlayers.contains( player ) )
+         || ( MAP_BETRAYER_TYPE[ GetMapName() ] == ePlayerBetrayType.BETRAY_FULL_MATCH && file.betrayedPlayerUIDs.contains( player.GetUID() ) ) )
+        return true
+
+    return false
 }
 
 // a copy of RespawnAsTitan(), without killing player
@@ -313,12 +373,7 @@ void function OnTitanSpawned( entity titan )
 	}
 
     // check owner betrayer state
-    // local debug version
-#if VOPER_BATTLE_DEBUG
-    if ( file.betrayedPlayers.contains( owner ) )
-#else
-    if ( file.betrayedPlayerUIDs.contains( owner.GetUID() ) )
-#endif
+    if ( IsPlayerBetrayer( owner ) )
     {
         print( "Betrayer titan spawned! Applying loadout" )
         // add betrayer abilities
@@ -341,6 +396,7 @@ void function SetUpBetrayerOwnedTitan( entity titan, entity owner )
     titan.SetMaxHealth( titan.GetMaxHealth() * BETRAYED_PLAYER_HEALTH_SCALE )
     titan.SetHealth( titan.GetMaxHealth() )
     TitanSoul_SetSoulDoomedHealthOverride( soul, BETRAYED_PLAYER_DOOMED_HEALTH )
+    StatusEffect_AddEndless( soul, eStatusEffect.damage_reduction, BETRAYED_PLAYER_DAMAGE_REDUCTION_SCALE )
 
     // shield regen
     TitanHealth_SetSoulEnableShieldRegen( soul, true )
@@ -351,16 +407,13 @@ void function SetUpBetrayerOwnedTitan( entity titan, entity owner )
     soul.SetShieldHealth( soul.GetShieldHealthMax() )
 
     // passives
+    PlayerEarnMeter_SetSoulEarnMeterSmokeEnabled( soul, false ) // disable earnmeter smoke
     TitanLoadoutDef loadout = soul.soul.titanLoadout
     // give PAS_HYPER_CORE
-    if ( !SoulHasPassive( soul, ePassives.PAS_HYPER_CORE ) )
+    if ( SoulHasPassive( soul, ePassives.PAS_HYPER_CORE ) )
     {
-        GivePassive( soul, ePassives.PAS_HYPER_CORE )
-        if ( TitanDamageRewardsTitanCoreTime() )
-        {
-            SoulTitanCore_SetNextAvailableTime( soul, 0.20 )
-            GiveOffhandElectricSmoke( titan )
-        }
+        TakePassive( soul, ePassives.PAS_HYPER_CORE )
+        thread RecoverOverCoreEffect( titan )
     }
     // these mods gets applied on player embark!
     loadout.setFileMods.removebyvalue( "pas_mobility_dash_capacity" ) // incompatible with turbo_titan, remove
@@ -375,6 +428,20 @@ void function SetUpBetrayerOwnedTitan( entity titan, entity owner )
 
     // disable disembarking but still allow ejecting
     thread TrackPlayerLeavingTitan( owner, "背叛者離開泰坦視作死亡" )
+}
+
+void function RecoverOverCoreEffect( entity titan )
+{
+	titan.EndSignal( "OnDestroy" )
+
+	entity soul = titan.GetTitanSoul()
+	if ( !IsValid( soul ) )
+		return
+	soul.EndSignal( "OnDestroy" )
+
+	WaitEndFrame() // wait for titan get smoke weapon
+	SoulTitanCore_SetNextAvailableTime( soul, 0.0 )
+	titan.TakeOffhandWeapon( OFFHAND_INVENTORY )
 }
 
 void function TrackPlayerLeavingTitan( entity owner, string notification = "" )
@@ -571,69 +638,140 @@ void function PickRandomBetrayerFromPlayers()
     // no betrayer allowed if player count not enough
     if ( GetPlayerArray().len() < BETRAY_MIN_REQUIRED_PLAYERS )
         return
-    array<entity> validBetrayerPlayers
-    array<string> lastBetrayedPlayerUIDs = GetStringArrayFromConVar( "last_betrayed_players" )
-    StoreStringArrayIntoConVar( "last_betrayed_players", [] ) // clean up convar
-    array<entity> pickedBetrayerPlayers
-    int pendingBetrayerCount = int( GetPlayerArray().len() * BETRAY_PLAYER_PERCENTAGE )
-    if ( pendingBetrayerCount <= 0 )
-        pendingBetrayerCount = 1
 
-    // first search for all valid betrayer players
-    foreach ( entity player in GetPlayerArray() )
+    // full-match betrayer
+    if ( MAP_BETRAYER_TYPE[ GetMapName() ] == ePlayerBetrayType.BETRAY_FULL_MATCH )
     {
-        if ( lastBetrayedPlayerUIDs.contains( player.GetUID() ) )
-            continue
+        if ( file.fullMatchBetrayedPicked )
+            return
+        array<entity> validBetrayerPlayers
+        array<string> lastBetrayedPlayerUIDs = GetStringArrayFromConVar( "last_betrayed_players" )
+        StoreStringArrayIntoConVar( "last_betrayed_players", [] ) // clean up convar
+        array<entity> pickedBetrayerPlayers
+        int pendingBetrayerCount = int( GetPlayerArray().len() * BETRAY_PLAYER_PERCENTAGE )
+        if ( pendingBetrayerCount <= 0 )
+            pendingBetrayerCount = 1
 
-        if ( !validBetrayerPlayers.contains( player ) )
-            validBetrayerPlayers.append( player )
-    }
-
-    // if we don't have enough players, allow last round picked player to become betrayer again
-    bool hasEnoughPlayer = validBetrayerPlayers.len() > pendingBetrayerCount
-    while ( pickedBetrayerPlayers.len() < pendingBetrayerCount )
-    {
+        // first search for all valid betrayer players
         foreach ( entity player in GetPlayerArray() )
         {
-            if ( hasEnoughPlayer && lastBetrayedPlayerUIDs.contains( player.GetUID() ) )
+            if ( lastBetrayedPlayerUIDs.contains( player.GetUID() ) )
+                continue
+            if ( IsPlayerBetrayer( player ) )
                 continue
 
-            if ( pickedBetrayerPlayers.contains( player ) )
-                continue
+            if ( !validBetrayerPlayers.contains( player ) )
+                validBetrayerPlayers.append( player )
+        }
 
-            if ( CoinFlip() )
+        // if we don't have enough players, allow last round picked player to become betrayer again
+        bool hasEnoughPlayer = validBetrayerPlayers.len() > pendingBetrayerCount
+        while ( pickedBetrayerPlayers.len() < pendingBetrayerCount )
+        {
+            foreach ( entity player in GetPlayerArray() )
             {
-                pickedBetrayerPlayers.append( player )
-                break
+                if ( IsPlayerBetrayer( player ) ) // never allow current betrayer to do it again
+                    continue
+
+                if ( hasEnoughPlayer && lastBetrayedPlayerUIDs.contains( player.GetUID() ) )
+                    continue
+
+                if ( pickedBetrayerPlayers.contains( player ) )
+                    continue
+
+                if ( CoinFlip() )
+                {
+                    pickedBetrayerPlayers.append( player )
+                    break
+                }
             }
         }
-    }
 
-    // start becoming betaryer
-    foreach ( entity player in pickedBetrayerPlayers )
+        // start becoming betaryer
+        foreach ( entity player in pickedBetrayerPlayers )
+        {
+            PlayerBecomesBetrayer( player )
+            AppendStringIntoArrayConVar( "last_betrayed_players", player.GetUID() ) // store into convar
+        }
+        file.fullMatchBetrayedPicked = true
+    }
+    // one-life betray
+    else if ( MAP_BETRAYER_TYPE[ GetMapName() ] == ePlayerBetrayType.BETRAY_ONE_LIFE )
     {
-        PlayerBecomesBetrayer( player )
-        AppendStringIntoArrayConVar( "last_betrayed_players", player.GetUID() ) // store into convar
+        array<entity> validBetrayerPlayers
+        array<entity> pickedBetrayerPlayers
+        int pendingBetrayerCount = int( GetPlayerArray().len() * BETRAY_PLAYER_PERCENTAGE )
+        if ( pendingBetrayerCount <= 0 )
+            pendingBetrayerCount = 1
+
+        // first search for all valid betrayer players
+        foreach ( entity player in GetPlayerArray() )
+        {
+            if ( file.betrayedPlayers.contains( player ) )
+                continue
+            if ( IsPlayerBetrayer( player ) )
+                continue
+
+            if ( !validBetrayerPlayers.contains( player ) )
+                validBetrayerPlayers.append( player )
+        }
+
+        // if we don't have enough players, allow last round picked player to become betrayer again
+        bool hasEnoughPlayer = validBetrayerPlayers.len() > pendingBetrayerCount
+        while ( pickedBetrayerPlayers.len() < pendingBetrayerCount )
+        {
+            foreach ( entity player in GetPlayerArray() )
+            {
+                if ( IsPlayerBetrayer( player ) ) // never allow current betrayer to do it again
+                    continue
+                
+                if ( hasEnoughPlayer && file.betrayedPlayers.contains( player ) )
+                    continue
+
+                if ( pickedBetrayerPlayers.contains( player ) )
+                    continue
+
+                if ( CoinFlip() )
+                {
+                    pickedBetrayerPlayers.append( player )
+                    break
+                }
+            }
+        }
+
+        // start becoming betaryer
+        foreach ( entity player in pickedBetrayerPlayers )
+        {
+            PlayerBecomesBetrayer( player )
+        }
     }
 }
 
 void function PlayerBecomesBetrayer( entity player )
 {
     // kill them and send to intermissing cam, so they can respawn
-    player.Die( player, player, { damageSourceId = eDamageSourceId.team_switch } )
+    if ( IsAlive( player ) )
+        player.Die( player, player, { damageSourceId = eDamageSourceId.team_switch } )
     SetPlayerCameraToIntermissionCam( player )
 
     SetTeam( player, VOPER_TEAM )
     NSSendAnnouncementMessageToPlayer( player, "已被切換至背叛者玩家", "將獲得全屬性增強，不可離開泰坦", <1,1,0>, 1, 0 )
-
-    // add to in-file array
-    // local debug version
-#if VOPER_BATTLE_DEBUG
-    file.betrayedPlayers.append( player )
-#else
-    file.betrayedPlayerUIDs.append( player.GetUID() )
-#endif
+    
     thread DelayedRemoveBetrayerPlayerDeathCount( player )
+
+    // full match betray: longer respawn delay
+    if ( MAP_BETRAYER_TYPE[ GetMapName() ] == ePlayerBetrayType.BETRAY_FULL_MATCH )
+    {
+        SetPlayerRespawnDelayForced( player, BETRAYED_PLAYER_RESPAWN_DELAY )
+        file.betrayedPlayerUIDs.append( player.GetUID() )
+    }
+    // one-life betray
+    else if ( MAP_BETRAYER_TYPE[ GetMapName() ] == ePlayerBetrayType.BETRAY_ONE_LIFE )
+    {
+        thread TrackBetrayedPlayerLifeTime( player )
+        // add to in-file array
+        file.betrayedPlayers.append( player )
+    }
 }
 
 void function DelayedRemoveBetrayerPlayerDeathCount( entity player )
@@ -643,22 +781,34 @@ void function DelayedRemoveBetrayerPlayerDeathCount( entity player )
         player.AddToPlayerGameStat( PGS_DEATHS, -1 )
 }
 
+void function TrackBetrayedPlayerLifeTime( entity player )
+{
+    ArrayRemoveDead( file.livingBetrayedPlayers )
+    WaitEndFrame() // wait for player's death
+    if ( !IsValid( player ) )
+        return
+
+    file.livingBetrayedPlayers.append( player )
+    WaitSignal( player, "OnDeath", "OnDestroy" )
+    file.livingBetrayedPlayers.removebyvalue( player )
+    if ( IsValid( player ) )
+        NSSendInfoMessageToPlayer( player, "背叛狀態已結束" )
+}
+
 void function ForceSetPlayerToMilitia()
 {//将玩家全部切换至反抗军
     while ( true )
     {
-        #if !VOPER_BATTLE_DEBUG
-            foreach ( entity player in GetPlayerArray() )
+        foreach ( entity player in GetPlayerArray() )
+        {
+            if ( !IsPlayerBetrayer( player ) && player.GetTeam() != TEAM_MILITIA )
             {
-                if ( !file.betrayedPlayerUIDs.contains( player.GetUID() ) && player.GetTeam() != TEAM_MILITIA )
-                {
-                    SetTeam( player, TEAM_MILITIA )
-                    entity petTitan = player.GetPetTitan()
-                    if ( IsValid( petTitan ) )
-                        SetTeam( petTitan, TEAM_MILITIA )
-                }
+                SetTeam( player, TEAM_MILITIA )
+                entity petTitan = player.GetPetTitan()
+                if ( IsValid( petTitan ) )
+                    SetTeam( petTitan, TEAM_MILITIA )
             }
-        #endif
+        }
 
         WaitFrame()
         //TitanWeapon_ViperMod()
@@ -682,9 +832,6 @@ void function StartIntro_BossViper( entity viper, int varient )
 
     EmitSoundOnEntity( viper, "music_s2s_14_titancombat" )
     WaitSignal( viper, "BossTitanIntroEnded" ) // intro reaches combat point
-
-    // start betrayer think
-    PickRandomBetrayerFromPlayers()
 
     // viper mover setup
     vector delta = <100,0,5000>
@@ -803,6 +950,9 @@ Point function GetHotDropSpawnPointFromLuckyPlayer( entity player )
 
 void function Phase1Think()
 {
+    // start betrayer think
+    PickRandomBetrayerFromPlayers()
+
     // SmokescreenStruct smoke
     // smoke.smokescreenFX = $"P_smokescreen_FD"
     // smoke.fxXYRadius = 3000
@@ -833,6 +983,9 @@ void function Phase1Think()
 
 void function Phase2Think()
 {
+    // start betrayer think
+    PickRandomBetrayerFromPlayers()
+
 	//EmitSoundOnEntity( file.viper, "diag_sp_viperchat_STS666_01_01_mcor_viper" )
     VoperBattle_ScriptedDialogue( "diag_sp_viperchat_STS666_01_01_mcor_viper" )
 
@@ -977,6 +1130,8 @@ void function UnlimitedSpawn()
                     case 1: // first wave
                         // wave type: npc spawn
                         print( "wave type: npc spawn" )
+                        // start betrayer think
+                        PickRandomBetrayerFromPlayers()
                         // start wave!
                         VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_22_01_imc_viper" )
                         voper.SetInvulnerable()
