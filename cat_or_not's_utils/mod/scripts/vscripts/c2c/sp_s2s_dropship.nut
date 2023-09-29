@@ -732,9 +732,9 @@ void function GoblinEngineFailureThink( ShipStruct ship )
 		if ( model.GetHealth() <= 1 )
 			break
 		// anti crash for gunship!!!
-		if( ship.model.GetModelName() == CROW_MODEL || ship.model.GetModelName() == DROPSHIP_MODEL )
+		int attachID = ship.model.LookupAttachment( ship.engineDamageTag )
+		if( attachID > 0 )
 		{
-			int attachID = ship.model.LookupAttachment( ship.engineDamageTag )
 			int fxID = GetParticleSystemIndex( GOBLIN_ENGINE_FAILURE )
 			entity effect = StartParticleEffectOnEntity_ReturnEntity( ship.model, fxID, FX_PATTACH_POINT_FOLLOW, attachID )
 			effect.Fire( "Kill", "", 0.25 )
