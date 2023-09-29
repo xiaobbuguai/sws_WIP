@@ -25,7 +25,7 @@ const vector Player_SpawnPoint_Voper = < -151, 1091, 1490 >
 const int VOPER_TEAM = TEAM_IMC
 // voper settings
 const int VOPER_MAX_HEALTH = 90000 // 90000 health with 0.8 damage reduction ~= 450000 health
-const float VOPER_DAMAGE_SCALE = 2.5 // voper deals 2.5x damage to players
+const float VOPER_DAMAGE_SCALE = 3.5 // voper deals 2.5x damage to players
 const float VOPER_DAMAGE_REDUCTION_SCALE = 0.8
 // voper health settings
 const float VOPER_MIN_HEALTH_FRAC = 0.03 // viper will keep 3% of health before getting killed
@@ -36,22 +36,22 @@ const float VOPER_CORE_MIN_COOLDOWN = 10.0 // voper will have minium of this coo
 const float VOPER_CORE_MAX_COOLDOWN = 30.0 // voper will have maxnium of this cooldown for their core ability
 const int VOPER_CORE_MAX_BURSTS = 32 // how many rockets voper will fire during one core activation
 const float VOPER_CORE_BURST_INTERVAL = 0.1 // interval between each rocket launch( script tickrate is 10 by default )
-const float VOPER_CORE_ROCKET_SPEED_SCALE = 1.5 // launch speed scale for core rocket. the higher, the rocket can be more accurate at long range
-const float VOPER_CORE_ROCKET_HOMING_SPEED_SCALE = 2.0 // homing speed scale for core rocket. the higher, the rocket can be more accurate at close range
+const float VOPER_CORE_ROCKET_SPEED_SCALE = 2.0 // launch speed scale for core rocket. the higher, the rocket can be more accurate at long range,1.5before
+const float VOPER_CORE_ROCKET_HOMING_SPEED_SCALE = 2.5 // homing speed scale for core rocket. the higher, the rocket can be more accurate at close range,2.0before
 
 // ash assist
-const int ASH_MAX_HEALTH = 90000 // 90000 health with 0.5 damage reduction ~= 180000 health
-const float ASH_DAMAGE_SCALE = 2.0
-const float ASH_DAMAGE_REDUCTION_SCALE = 0.5
+const int ASH_MAX_HEALTH = 90000 //  e.g.:90000 health with 0.5 damage reduction ~= 180000 health
+const float ASH_DAMAGE_SCALE = 3.5 // befor is 2
+const float ASH_DAMAGE_REDUCTION_SCALE = 0.7 //0.5
 const float ASH_CORE_METER_MULTIPLIER = 6.0 // ash's core multiplier
 
 // npc health settings
-const float INFANTRY_HEALTH_SCALE = 2.0
-const float TITAN_HEALTH_SCALE = 1.5
-const float REAPER_HEALTH_SCALE = 2.0
+const float INFANTRY_HEALTH_SCALE = 2.5 //2.0before
+const float TITAN_HEALTH_SCALE = 3.5 //1.5
+const float REAPER_HEALTH_SCALE = 2.5 //2.0before
 // npc damage
-const float NPC_TITAN_CORE_METER_MULTIPLIER = 2.5 // npc titan's core multiplier
-const float NPC_TITAN_EJECTING_DELAY = 3.0 // npc pilot ejecting delay after doom
+const float NPC_TITAN_CORE_METER_MULTIPLIER = 3 // npc titan's core multiplier,before is 2.5
+const float NPC_TITAN_EJECTING_DELAY = 2.5 // npc pilot ejecting delay after doom,before is3.0
 
 // wave point settings
 // THESE ARE NO NEED TO CHANGE, ONLY FOR IN-FILE CALCULATIONS
@@ -63,15 +63,15 @@ const int WAVE_POINTS_PER_REAPER = 5 // a reaper unit woth 5 wave points
 const float PHASE_TRANSITION_DELAY = 5.0
 const bool WAVE_CLEANUP_ON_END = true // clean up all spawned npcs on wave end
 // 1st wave( phase1 )
-const int FIRST_WAVE_REAPERS_COUNT = 10
+const int FIRST_WAVE_REAPERS_COUNT = 15 //10 before
 const float FIRST_WAVE_TIMEOUT = -1 // -1 means infinite timeout
 // 2nd wave( phase2 )
 const int SECOND_WAVE_TITANS_COUNT = 7
 const float SECOND_WAVE_TIMEOUT = -1 // -1 means infinite timeout
 // unlimited spawn wave( phase3 )
-const int UNLIMITED_SPAWN_SQUADS_COUNT = 5
-const int UNLIMITED_SPAWN_REAPERS_COUNT = 4
-const int UNLIMITED_SPAWN_TITANS_COUNT = 3
+const int UNLIMITED_SPAWN_SQUADS_COUNT = 7  //5 before
+const int UNLIMITED_SPAWN_REAPERS_COUNT = 6  //4 before
+const int UNLIMITED_SPAWN_TITANS_COUNT = 5   //3  before
 const float UNLIMITED_SPAWN_TIMEOUT = -1 // -1 means infinite timeout
 
 // notification settings
@@ -105,7 +105,7 @@ const table<string, vector> MAP_ASH_SPAWNPOINTS =
 {
     ["mp_drydock"]              = < 1070, 3465, 400 >
 }
- 
+
 const array<string> BETRAYER_TITAN_LIMITED =
 [
     "ion",
@@ -117,16 +117,16 @@ const array<string> BETRAYER_TITAN_LIMITED =
 ]
 
 const bool END_WAVE_ON_BETRAYER_WIPE = true // end curret wave if betrayers are wiped
-const int BETRAY_MIN_REQUIRED_PLAYERS = 4 // you need at least this amount of players to start betray
+const int BETRAY_MIN_REQUIRED_PLAYERS = 6 // you need at least this amount of players to start betray,before is 4
 const float BETRAY_PLAYER_PERCENTAGE = 0.2 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
 
 // full-match betrayer
 const float BETRAYED_PLAYER_RESPAWN_DELAY = 20.0
 
-const float BETRAYED_PLAYER_HEALTH_SCALE = 2.0 // betrayed player's health scale
+const float BETRAYED_PLAYER_HEALTH_SCALE = 4.0 // betrayed player's health scale,before is 2.0
 const float BETRAYED_PLAYER_DAMAGE_REDUCTION_SCALE = 0.5 // 0.5x damage reduction prettymuch means 2x health
 const int BETRAYED_PLAYER_DOOMED_HEALTH = 8000 // betrayed player's doomed health value
-const float BETRAYED_PLAYER_SHIELD_SCALE = 2.0 // betrayed player's shield scale
+const float BETRAYED_PLAYER_SHIELD_SCALE = 5.0 // betrayed player's shield scale
 const float BETRAYED_PLAYER_SHIELD_REGEN_TIME = 3.0 // time required to regen shield to full
 const float BETRAYED_PLAYER_SHIELD_REGEN_DELAY = 3.0 // how long the betaryed player can start regen shield
 const float BETRAYED_PLAYER_CORE_MULTIPLIER = 10.0 // beteryed player's core meter multiplier
@@ -275,7 +275,7 @@ sTryGetTitanLoadoutCallbackReturn function OnTryGetTitanLoadout( entity player, 
         print( "returnStruct.loadout.titanClass: " + returnStruct.loadout.titanClass )
         //SendHudMessage( player, "背叛者不可用帝王", -1, -0.35, 255, 255, 0, 255, 0, 5, 0 )
     }
-    
+
     return returnStruct
 }
 
@@ -307,7 +307,7 @@ bool function IsPlayerBetrayer( entity player )
 
 array<entity> function GetAllBetrayedPlayers()
 {
-    array<entity> betrayedPlayers 
+    array<entity> betrayedPlayers
     foreach ( entity player in GetPlayerArray() )
     {
         if ( IsPlayerBetrayer( player ) )
@@ -333,16 +333,16 @@ void function ReplaceBetrayerAsTitan( entity player )
 	//player.SetPlayerSettings( "spectator" ) // prevent a crash with going from titan => pilot on respawn
 	//player.StopPhysics() // need to set this after SetPlayerSettings
 	//PlayerClassChangeToSpectator( player )
-	
+
 	player.isSpawning = true
 	entity spawnpoint = FindSpawnPoint( player, true, ( ShouldStartSpawn( player ) || Flag( "ForceStartSpawn" ) ) && !IsFFAGame() )
 
  	TitanLoadoutDef titanLoadout = GetTitanLoadoutForPlayer( player )
-	
+
 	asset model = GetPlayerSettingsAssetForClassName( titanLoadout.setFile, "bodymodel" )
 	Attachment warpAttach = GetAttachmentAtTimeFromModel( model, "at_hotdrop_01", "offset", spawnpoint.GetOrigin(), spawnpoint.GetAngles(), 0 )
 	PlayFX( TURBO_WARP_FX, warpAttach.position, warpAttach.angle )
-		
+
 	entity titan = CreateAutoTitanForPlayer_FromTitanLoadout( player, titanLoadout, spawnpoint.GetOrigin(), spawnpoint.GetAngles() )
 	DispatchSpawn( titan )
 	// removed. prompt won't show when player is dead
@@ -351,7 +351,7 @@ void function ReplaceBetrayerAsTitan( entity player )
 
 	ClearPlayerEliminated( player ) // mark as player not eliminated
 	ClearRespawnAvailable( player ) // need so the respawn icon doesn't show
-	
+
     AddCinematicFlag( player, CE_FLAG_HIDE_MAIN_HUD ) // hide hud from pilots
 	AddCinematicFlag( player, CE_FLAG_CLASSIC_MP_SPAWNING ) // hide hud
 	// do titanfall scoreevent
@@ -359,19 +359,19 @@ void function ReplaceBetrayerAsTitan( entity player )
 
 	entity camera = CreateTitanDropCamera( spawnpoint.GetAngles(), < 90, titan.GetAngles().y, 0 > )
 	camera.SetParent( titan )
-	
+
 	// calc offset for spawnpoint angle
 	// todo this seems bad but too lazy to figure it out rn
 	//vector xyOffset = RotateAroundOrigin2D( < 44, 0, 0 >, < 0, 0, 0>, spawnpoint.GetAngles().y )
 	//xyOffset.z = 520 // < 44, 0, 520 > at 0,0,0, seems to be the offset used in tf2
 	//print( xyOffset )
-	
+
 	vector xyOffset = RotateAroundOrigin2D( < 44, 0, 520 >, < 0, 0, 0 >, spawnpoint.GetAngles().y )
-	
+
 	camera.SetLocalOrigin( xyOffset )
 	camera.SetLocalAngles( < camera.GetAngles().x, spawnpoint.GetAngles().y, camera.GetAngles().z > ) // this straight up just does not work lol
 	camera.Fire( "Enable", "!activator", 0, player )
-	
+
 	player.EndSignal( "OnDestroy" )
 	titan.EndSignal( "OnDestroy" )
 	OnThreadEnd( function() : ( player, titan, camera )
@@ -386,20 +386,20 @@ void function ReplaceBetrayerAsTitan( entity player )
 			player.isSpawning = false
 			ClearTitanAvailable( player ) // we've done everything, considering clear titan available
 		}
-	
+
 		if ( IsValid( titan ) )
 			titan.Destroy() // pilotbecomestitan leaves an npc titan that we need to delete
 		else
 			RespawnAsPilot( player ) // this is 100% an edgecase, just avoid softlocking if we ever hit it in playable gamestates
-			
+
 		camera.Fire( "Disable", "!activator", 0, player )
 		camera.Destroy()
 	})
-	
+
 	waitthread TitanHotDrop( titan, "at_hotdrop_01", spawnpoint.GetOrigin(), spawnpoint.GetAngles(), player, camera ) // do hotdrop anim
-	
+
 	player.SetOrigin( titan.GetOrigin() )
-	
+
 	// don't make player titan when entity batteryContainer is not valid.
 	// This will prevent a servercrash that sometimes occur when evac is disabled and somebody is calling a titan in the defeat screen.
 	if( IsValid( titan.GetTitanSoul().soul.batteryContainer ) )
@@ -610,7 +610,7 @@ void function StartVoperBattle( int varient )
     // pilot
 	ExtraSpawner_SetNPCWeapons( "npc_pilot_elite", ["mp_weapon_rspn101_og", "mp_weapon_r97", "mp_weapon_car", "mp_weapon_hemlok_smg", "mp_weapon_hemlok", "mp_weapon_g2", "mp_weapon_vinson"] )
 	ExtraSpawner_SetNPCAntiTitanWeapons( "npc_pilot_elite", ["mp_weapon_rocket_launcher", "mp_weapon_mgl", "mp_weapon_defender", "mp_weapon_arc_launcher"] )
-    ExtraSpawner_SetNPCGrenadeWeapons( "npc_pilot_elite", ["mp_weapon_thermite_grenade", "mp_weapon_grenade_emp"] )	
+    ExtraSpawner_SetNPCGrenadeWeapons( "npc_pilot_elite", ["mp_weapon_thermite_grenade", "mp_weapon_grenade_emp"] )
 
     // force update player team
     thread ForceSetPlayerToMilitia()
@@ -794,7 +794,7 @@ void function PickRandomBetrayerFromPlayers()
             {
                 if ( IsPlayerBetrayer( player ) ) // never allow current betrayer to do it again
                     continue
-                
+
                 if ( hasEnoughPlayer && file.betrayedPlayers.contains( player ) )
                     continue
 
@@ -851,7 +851,7 @@ void function PlayerBecomesBetrayer_Threaded( entity player )
 
     SetTeam( player, VOPER_TEAM )
     NSSendAnnouncementMessageToPlayer( player, "已被切換至背叛者玩家", "將獲得全屬性增強，不可離開泰坦", <1,1,0>, 1, 0 )
-    
+
     thread DelayedRemoveBetrayerPlayerDeathCount( player )
 }
 
@@ -890,13 +890,11 @@ void function TrackBetrayedPlayerLifeTime( entity player )
                     if ( !results.waveEndedProperly )
                         svGlobal.levelEnt.Signal( "VoperWaveEnd" )
                 #endif
-                /*
-                foreach ( entity otherPlayer in GetPlayerArrayOfTeam( GetOtherTeam( VOPER_TEAM ) ) )
+                foreach ( entity otherPlayer in GetPlayerArrayOfTeam( GetOtherTeam( VOPER_TEAM ) ) )  // */
                 {
                     if ( player != otherPlayer )
                         NSSendAnnouncementMessageToPlayer( player, "全部背叛者已被清除", "波次結束", <1,0,0>, 1, 0 )
-                }
-                */
+                }  //  */
             }
         }
     )
@@ -1014,7 +1012,7 @@ void function StartIntro_BossViper( entity viper, int varient )
         #else
             thread Phase1Think()
         #endif // VOPER_BATTLE_DEBUG
-        //thread PhaseBackThink() 
+        //thread PhaseBackThink()
     }
 }
 
@@ -1265,7 +1263,7 @@ void function UnlimitedSpawn()
                 case 2: // second wave
                     // wave type: viper health
                     print( "wave type: viper health" )
-                    delayBeforeNextWave = 5.0 // next wave delay 
+                    delayBeforeNextWave = 5.0 // next wave delay
 
                     // start wave!
                     VoperBattle_ScriptedDialogue( "diag_sp_bossFight_STS676_36_01_imc_viper" )
@@ -1650,11 +1648,11 @@ void function Behavior_ViperDeathAnimThread( ShipStruct ship )
 
 
 
-// __        _____     _______     ____  ____   ___        ___   _     _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
-// \ \      / / \ \   / / ____|   / ___||  _ \ / \ \      / / \ | |   |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___| 
-//  \ \ /\ / / _ \ \ / /|  _|     \___ \| |_) / _ \ \ /\ / /|  \| |   | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
+// __        _____     _______     ____  ____   ___        ___   _     _____ _   _ _   _  ____ _____ ___ ___  _   _ ____
+// \ \      / / \ \   / / ____|   / ___||  _ \ / \ \      / / \ | |   |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___|
+//  \ \ /\ / / _ \ \ / /|  _|     \___ \| |_) / _ \ \ /\ / /|  \| |   | |_  | | | |  \| | |     | |  | | | | |  \| \___ \
 //   \ V  V / ___ \ V / | |___     ___) |  __/ ___ \ V  V / | |\  |   |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
-//    \_/\_/_/   \_\_/  |_____|   |____/|_| /_/   \_\_/\_/  |_| \_|   |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
+//    \_/\_/_/   \_\_/  |_____|   |____/|_| /_/   \_\_/\_/  |_| \_|   |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/
 
 // main setup func, should always be at the end of a npc's handler function
 void function SetupVoperBattleSpawnedNPC( entity npc, string scriptName, int wavePoint = 1 )
@@ -1667,7 +1665,7 @@ void function SetupVoperBattleSpawnedNPC( entity npc, string scriptName, int wav
 void function WaitForNPCDeath( entity npc, string scriptName, int wavePoint )
 {
     // we stop counting if wave transfering
-    svGlobal.levelEnt.EndSignal( "VoperWaveTransfer" ) 
+    svGlobal.levelEnt.EndSignal( "VoperWaveTransfer" )
     svGlobal.levelEnt.EndSignal( "VoperWaveEnd" )
     string scriptName = npc.GetScriptName()
     WaitSignal( npc, "OnDeath", "OnDestroy" )
@@ -1679,7 +1677,7 @@ void function WaitForNPCDeath( entity npc, string scriptName, int wavePoint )
 void function WaitForViperTargetSpawn( bool heavyArmorOnly = false )
 {
     // wait for target spawn
-    while ( ViperGetTargetPlayers( heavyArmorOnly ).len() == 0 ) 
+    while ( ViperGetTargetPlayers( heavyArmorOnly ).len() == 0 )
         WaitFrame()
 }
 
@@ -1687,7 +1685,7 @@ void function VoperBattle_GenericReaperSpawn( string waveEntName, int count )
 {
     // generic reaper enemy: nuke reaper that can launch
     // setup reaper handler
-    ExtraSpawner_SetNPCHandlerFunc( 
+    ExtraSpawner_SetNPCHandlerFunc(
         "npc_super_spectre",            // npc class to handle
         // npc handler function
         void function( entity reaper ): ( waveEntName )
@@ -1726,7 +1724,7 @@ void function VoperBattle_GenericReaperSpawn( string waveEntName, int count )
 
         Point dropPoint = GetHotDropSpawnPointFromLuckyPlayer( luckyPlayer )
 
-        thread ExtraSpawner_SpawnReaperCanLaunchTicks( 
+        thread ExtraSpawner_SpawnReaperCanLaunchTicks(
             dropPoint.origin,           // origin
             dropPoint.angles,           // angles
             VOPER_TEAM,                 // team
@@ -1742,7 +1740,7 @@ void function VoperBattle_GenericTitanSpawn( string waveEntName, int count )
 {
     // generic titan enemy: npc pilot embarked titans
     // setup titan handler
-    ExtraSpawner_SetNPCHandlerFunc( 
+    ExtraSpawner_SetNPCHandlerFunc(
         "npc_titan",            // npc class to handle
         // npc handler function
         void function( entity titan ): ( waveEntName )
@@ -1754,7 +1752,7 @@ void function VoperBattle_GenericTitanSpawn( string waveEntName, int count )
             if ( titan.ai.bossTitanType != TITAN_MERC )
             {
                 TitanHealth_SetTitanCoreBuilderMultiplier( titan, NPC_TITAN_CORE_METER_MULTIPLIER ) // want them get core abilities faster
-        
+
                 // highlight
                 thread SonarEnemyForever( titan, 5 ) // add 5s delay before start highlighting
 
@@ -1820,7 +1818,7 @@ void function VoperBattle_GenericNPCSquadSpawn( string waveEntName, int count, s
 {
     // we stop spawning if wave transfering
     svGlobal.levelEnt.EndSignal( "VoperWaveEnd" )
-    
+
     WaitEndFrame() // wait so WaitForWaveTimeout() can set up
 
     for( int x = 0; x < count; x++ )
@@ -1837,7 +1835,7 @@ void function VoperBattle_GenericNPCSquadSpawn( string waveEntName, int count, s
 
         Point dropPoint = GetHotDropSpawnPointFromLuckyPlayer( luckyPlayer )
 
-        thread ExtraSpawner_SpawnDropPod( 
+        thread ExtraSpawner_SpawnDropPod(
             dropPoint.origin,           // origin
             dropPoint.angles,           // angles
             VOPER_TEAM,                 // team
@@ -1890,7 +1888,7 @@ void function VoperBattle_GenericSpecialistSquadSpawn( string waveEntName, int c
 
         Point dropPoint = GetHotDropSpawnPointFromLuckyPlayer( luckyPlayer )
 
-        thread ExtraSpawner_SpawnSpecialistGruntDropPod( 
+        thread ExtraSpawner_SpawnSpecialistGruntDropPod(
             dropPoint.origin,           // origin
             dropPoint.angles,           // angles
             VOPER_TEAM,                 // team
@@ -1995,11 +1993,11 @@ void function WaitForVoperHealthLossPercentage( float percentage )
         voper.SetInvulnerable() // wave ended properly
 }
 
-//  _   _ _____ ___ _     ___ _______   __    _____ _   _ _   _  ____ _____ ___ ___  _   _ ____  
-// | | | |_   _|_ _| |   |_ _|_   _\ \ / /   |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___| 
-// | | | | | |  | || |    | |  | |  \ V /    | |_  | | | |  \| | |     | |  | | | | |  \| \___ \ 
+//  _   _ _____ ___ _     ___ _______   __    _____ _   _ _   _  ____ _____ ___ ___  _   _ ____
+// | | | |_   _|_ _| |   |_ _|_   _\ \ / /   |  ___| | | | \ | |/ ___|_   _|_ _/ _ \| \ | / ___|
+// | | | | | |  | || |    | |  | |  \ V /    | |_  | | | |  \| | |     | |  | | | | |  \| \___ \
 // | |_| | | |  | || |___ | |  | |   | |     |  _| | |_| | |\  | |___  | |  | | |_| | |\  |___) |
-//  \___/  |_| |___|_____|___| |_|   |_|     |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/ 
+//  \___/  |_| |___|_____|___| |_|   |_|     |_|    \___/|_| \_|\____| |_| |___\___/|_| \_|____/
 
 void function SonarTitan(entity player, float duration, float delay = 0)
 {
@@ -2105,9 +2103,9 @@ void function VoperBattle_ScriptedDialogue( string dialogue )
 
 //   ____ ___  _   ___     ___    ____      _   _ _____ ___ _     ___ _______   __
 //  / ___/ _ \| \ | \ \   / / \  |  _ \    | | | |_   _|_ _| |   |_ _|_   _\ \ / /
-// | |  | | | |  \| |\ \ / / _ \ | |_) |   | | | | | |  | || |    | |  | |  \ V / 
-// | |__| |_| | |\  | \ V / ___ \|  _ <    | |_| | | |  | || |___ | |  | |   | |  
-//  \____\___/|_| \_|  \_/_/   \_\_| \_\    \___/  |_| |___|_____|___| |_|   |_|  
+// | |  | | | |  \| |\ \ / / _ \ | |_) |   | | | | | |  | || |    | |  | |  \ V /
+// | |__| |_| | |\  | \ V / ___ \|  _ <    | |_| | | |  | || |___ | |  | |   | |
+//  \____\___/|_| \_|  \_/_/   \_\_| \_\    \___/  |_| |___|_____|___| |_|   |_|
 
 array<string> function GetStringArrayFromConVar( string convar )
 {
