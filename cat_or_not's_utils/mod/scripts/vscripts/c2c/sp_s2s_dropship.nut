@@ -224,7 +224,7 @@ ShipStruct function SpawnCrowLight( LocalVec ornull origin = null, vector angles
 	return SpawnDropShipLight( origin, angles, TEAM_MILITIA, animating )
 }
 
-ShipStruct function SpawnDropShipLight( LocalVec ornull origin = null, vector angles = CONVOYDIR, int team = 0, bool animating = false, disableEngineFailure = false )
+ShipStruct function SpawnDropShipLight( LocalVec ornull origin = null, vector angles = CONVOYDIR, int team = 0, bool animating = false )
 {
 	Assert( team != 0, "Team: " + team + " not valid" )
 
@@ -296,9 +296,8 @@ ShipStruct function SpawnDropShipLight( LocalVec ornull origin = null, vector an
 	ship.prevBehavior 	= [ eBehavior.IDLE ]
 	ship.doorState 		= eDoorState.CLOSED
 	ship.free 			= false
-	
-	if ( !disableEngineFailure )
-		thread GoblinEngineFailureThink( ship )
+
+	thread GoblinEngineFailureThink( ship )
 	thread RunBehaviorFiniteStateMachine( ship )
 
 	ResetMaxSpeed( ship )
@@ -732,11 +731,11 @@ void function GoblinEngineFailureThink( ShipStruct ship )
 
 		if ( model.GetHealth() <= 1 )
 			break
-
-		int attachID = ship.model.LookupAttachment( ship.engineDamageTag )
-		int fxID = GetParticleSystemIndex( GOBLIN_ENGINE_FAILURE )
-		if ( attachID > 0 ) // attachID can sometimes be invalid, pretty weird
+		// anti crash for gunship!!!
+		if( ship.model.GetModelName() == CROW_MODEL || ship.model.GetModelName() == DROPSHIP_MODEL )
 		{
+			int attachID = ship.model.LookupAttachment( ship.engineDamageTag )
+			int fxID = GetParticleSystemIndex( GOBLIN_ENGINE_FAILURE )
 			entity effect = StartParticleEffectOnEntity_ReturnEntity( ship.model, fxID, FX_PATTACH_POINT_FOLLOW, attachID )
 			effect.Fire( "Kill", "", 0.25 )
 
@@ -1063,6 +1062,8 @@ void function Behavior_DeathAnimThread( ShipStruct ship )
 
 entity function GoblinDeathFx( ShipStruct ship )
 {
+	if( ship.model.GetModelName() != CROW_MODEL && ship.model.GetModelName() != DROPSHIP_MODEL )
+		return
 	EmitSoundOnEntity( ship.model, "s2s_goblin_explode" )
 
 	int attachID = ship.model.LookupAttachment( ship.engineDamageTag )
