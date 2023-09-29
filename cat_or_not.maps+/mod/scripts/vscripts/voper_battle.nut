@@ -106,7 +106,7 @@ const array<string> BETRAYER_TITAN_LIMITED =
     "scorch",
 ]
 
-const int BETRAY_MIN_REQUIRED_PLAYERS = 1 // you need at least this amount of players to start betray
+const int BETRAY_MIN_REQUIRED_PLAYERS = 4 // you need at least this amount of players to start betray
 const float BETRAY_PLAYER_PERCENTAGE = 0.2 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
 
 // full-match betrayer
