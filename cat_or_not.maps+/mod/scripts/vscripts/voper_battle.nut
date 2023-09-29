@@ -74,7 +74,7 @@ const float UNLIMITED_SPAWN_TIMEOUT = 120
 //const int WAVE_PROGRESS_HUD_ENABLED = true // may cause unexpected crash and client-side stuck. don't know why, better rework sh_message_utils.gnut?
 
 // betrayer settings
-const int BETRAY_MIN_REQUIRED_PLAYERS = 2 // you need at least this amount of players to start betray
+const int BETRAY_MIN_REQUIRED_PLAYERS = 3 // you need at least this amount of players to start betray
 const float BETRAY_PLAYER_PERCENTAGE = 0.2 // this percentage of total player will betray their teammates, gain dash recharge boost, instant core recharge and higher health
 const float BETRAYED_PLAYER_HEALTH_SCALE = 2.0 // betrayed player's health scale
 const int BETRAYED_PLAYER_DOOMED_HEALTH = 8000 // betrayed player's doomed health value
@@ -99,16 +99,27 @@ struct
     vector origin_ref
     string viperLastDialogue
 
+    // settings storing
+    bool titanExitDisabledOnStart
+
     // wave spawns
     table<entity, bool> entSpawnForVoperBattle
     table<string, int> pendingWaveTimeouts
 
     // betrayer
     array<string> betrayedPlayerUIDs
+    // local debug version
+    array<entity> betrayedPlayers
 } file
 
 void function VoperBattle_Init()
 {
+    // store default settings
+    if ( Riff_TitanExitEnabled() == eTitanExitEnabled.Never )
+        file.titanExitDisabledOnStart = true
+    // allow player to eject, but kill them on successful ejecting
+    Riff_ForceTitanExitEnabled( eTitanExitEnabled.Always )
+
     // add new boss titan
 	ExtraSpawner_RegisterToBossTitanSpawnList
 	(
@@ -150,7 +161,7 @@ void function VoperBattle_Init()
     //AddDeathCallback( "npc_titan" )
 
     // betrayer
-    RegisterSignal( "TrackBetrayerPlayerTitanDeath" )
+    RegisterSignal( "TrackPlayerLeavingTitan" )
     // for betrayer playstyle restriction
     AddCallback_OnPlayerRespawned( OnPlayerRespawned )
     // for updating betrayer titan loadout
@@ -181,7 +192,12 @@ void function OnPlayerRespawned( entity player )
     if ( player.IsTitan() || IsValid( player.GetPetTitan() ) )
         return
 
+    // local debug version
+#if VOPER_BATTLE_DEBUG
+    if ( file.betrayedPlayers.contains( player ) )
+#else
     if ( file.betrayedPlayerUIDs.contains( player.GetUID() ) )
+#endif
     {
         print( "Betrayer player respawned! Setting to titan" )
         // this will change player to spectator, no worries
@@ -296,20 +312,29 @@ void function OnTitanSpawned( entity titan )
 	}
 
     // check owner betrayer state
-    string uid = owner.GetUID()
-    if ( file.betrayedPlayerUIDs.contains( uid ) )
+    // local debug version
+#if VOPER_BATTLE_DEBUG
+    if ( file.betrayedPlayers.contains( owner ) )
+#else
+    if ( file.betrayedPlayerUIDs.contains( owner.GetUID() ) )
+#endif
     {
         print( "Betrayer titan spawned! Applying loadout" )
         // add betrayer abilities
         SetUpBetrayerOwnedTitan( titan, owner )
     }
+    else // normal player state: only enable ejecting tracking for titanExitDisabled case
+    {
+        if ( file.titanExitDisabledOnStart )
+        {
+            // disable disembarking but still allow ejecting
+            thread TrackPlayerLeavingTitan( owner, "當前模式關閉彈射，離開泰坦視作死亡" )
+        }
+    }
 }
 
 void function SetUpBetrayerOwnedTitan( entity titan, entity owner )
 {
-    // disble owner exiting titan
-    DisableTitanExit( owner )
-
     entity soul = titan.GetTitanSoul()
     // setup titan passives and health
     titan.SetMaxHealth( titan.GetMaxHealth() * BETRAYED_PLAYER_HEALTH_SCALE )
@@ -347,17 +372,21 @@ void function SetUpBetrayerOwnedTitan( entity titan, entity owner )
     // core meter
     TitanHealth_SetTitanCoreBuilderMultiplier( titan, BETRAYED_PLAYER_CORE_MULTIPLIER )
 
-    thread TrackBetrayerPlayerTitanDeath( owner, soul )
+    // disable disembarking but still allow ejecting
+    thread TrackPlayerLeavingTitan( owner, "背叛者離開泰坦視作死亡" )
 }
 
-void function TrackBetrayerPlayerTitanDeath( entity owner, entity soul )
+void function TrackPlayerLeavingTitan( entity owner, string notification = "" )
 {
-    print( "RUNNING TrackBetrayerPlayerTitanDeath()" )
-    owner.Signal( "TrackBetrayerPlayerTitanDeath" )
-    owner.EndSignal( "TrackBetrayerPlayerTitanDeath" )
+    //print( "RUNNING TrackPlayerLeavingTitan()" )
+    owner.Signal( "TrackPlayerLeavingTitan" )
+    owner.EndSignal( "TrackPlayerLeavingTitan" )
     owner.EndSignal( "OnDestroy" )
     owner.EndSignal( "OnDeath" )
-    print( "betrayer: " + string( owner ) )
+    //print( "betrayer: " + string( owner ) )
+
+    // disble owner exiting titan
+    DisableTitanExit( owner )
 
     WaitSignal( owner, "DisembarkingTitan", "TitanEjectionStarted" )
     //print( "betrayer leaving titan or ejecting!" )
@@ -368,7 +397,8 @@ void function TrackBetrayerPlayerTitanDeath( entity owner, entity soul )
     //print( "betrayer has became pilot!" )
     if ( IsAlive( owner ) )
     {
-        SendHudMessage(owner, "背叛者離開泰坦視作死亡" , -1, -0.35, 255, 255, 0, 255, 0, 5, 0)
+        if ( notification != "" )
+            SendHudMessage( owner, notification, -1, -0.35, 255, 255, 0, 255, 0, 5, 0 )
         owner.Die( owner, owner, { damageSourceId = eDamageSourceId.outOfBounds } )
     }
 }
@@ -579,7 +609,12 @@ void function PlayerBecomesBetrayer( entity player )
     NSSendAnnouncementMessageToPlayer( player, "已被切換至背叛者玩家", "將獲得全屬性增強，不可離開泰坦", <1,1,0>, 1, 0 )
 
     // add to in-file array
+    // local debug version
+#if VOPER_BATTLE_DEBUG
+    file.betrayedPlayers.append( player )
+#else
     file.betrayedPlayerUIDs.append( player.GetUID() )
+#endif
     thread DelayedRemoveBetrayerPlayerDeathCount( player )
 }
 
@@ -594,16 +629,18 @@ void function ForceSetPlayerToMilitia()
 {//将玩家全部切换至反抗军
     while ( true )
     {
-        foreach ( entity player in GetPlayerArray() )
-        {
-            if ( !file.betrayedPlayerUIDs.contains( player.GetUID() ) && player.GetTeam() != TEAM_MILITIA )
+        #if !VOPER_BATTLE_DEBUG
+            foreach ( entity player in GetPlayerArray() )
             {
-                SetTeam( player, TEAM_MILITIA )
-                entity petTitan = player.GetPetTitan()
-                if ( IsValid( petTitan ) )
-                    SetTeam( petTitan, TEAM_MILITIA )
+                if ( !file.betrayedPlayerUIDs.contains( player.GetUID() ) && player.GetTeam() != TEAM_MILITIA )
+                {
+                    SetTeam( player, TEAM_MILITIA )
+                    entity petTitan = player.GetPetTitan()
+                    if ( IsValid( petTitan ) )
+                        SetTeam( petTitan, TEAM_MILITIA )
+                }
             }
-        }
+        #endif
 
         WaitFrame()
         //TitanWeapon_ViperMod()
@@ -1431,6 +1468,9 @@ void function VoperBattle_GenericTitanSpawn( string waveEntName, int count )
                 // update health
                 titan.SetMaxHealth( titan.GetMaxHealth() * TITAN_HEALTH_SCALE )
                 titan.SetHealth( titan.GetMaxHealth() )
+
+                // setup default nuke
+                ExtraSpawner_SetNPCPilotEmbarkedTitanNuke( titan )
 
                 // setup wave points, for WaitForWaveTimeout() handling spawns
                 print( "SetupVoperBattleSpawnedNPC for: " + string( titan ) )
