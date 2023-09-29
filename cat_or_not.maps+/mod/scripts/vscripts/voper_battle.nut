@@ -97,6 +97,12 @@ const table<string, int> MAP_BETRAYER_TYPE =
     ["mp_wargames"]             = ePlayerBetrayType.BETRAY_ONE_LIFE,
 }
 
+// by default they'll use file.ref position
+const table<string, vector> MAP_ASH_SPAWNPOINTS =
+{
+    ["mp_drydock"]              = < 1070, 3465, 400 >
+}
+ 
 const array<string> BETRAYER_TITAN_LIMITED =
 [
     "ion",
@@ -210,7 +216,7 @@ void function VoperBattle_Init()
 
     // debug
     AddClientCommandCallback( "voper_battle", CC_ForceStartVoperBattle )
-    AddClientCommandCallback( "clear_non_viper_npc", CC_ClearNonViperNPCs )
+    AddClientCommandCallback( "clear_non_voper_npc", CC_ClearNonViperNPCs )
 }
 
 void function VoperBossTitanSetup( entity titan )
@@ -613,6 +619,8 @@ void function StartVoperBattle( int varient )
     MpBossTitan_SetDamageScale( viper, VOPER_DAMAGE_SCALE ) // they can deal higher damage
 	MpBossTitan_SetDamageReductionScale( viper, VOPER_DAMAGE_REDUCTION_SCALE )
     viper.GetOffhandWeapon( OFFHAND_EQUIPMENT ).AllowUse( false ) // disable core ability, we use scripted titan core weapon
+    // Don't do trigger checks
+    viper.SetTouchTriggers( false )
 
     ExtraSpawner_StopDefaultHandler( viper ) // stop handler for viper, so their animation won't be messed up
 
@@ -1064,7 +1072,10 @@ void function BossAshAssistThink()
 
 void function SpawnAshBossTitanAndSetup()
 {
-    entity ash = ExtraSpawner_SpawnBossTitan( file.origin_ref, <0,90,0>, VOPER_TEAM, "ash_boss", TITAN_MERC )
+    vector pos = file.origin_ref
+    if ( GetMapName() in MAP_ASH_SPAWNPOINTS )
+        pos = MAP_ASH_SPAWNPOINTS[ GetMapName() ]
+    entity ash = ExtraSpawner_SpawnBossTitan( pos, <0,90,0>, VOPER_TEAM, "ash_boss", TITAN_MERC )
 
     ash.SetMaxHealth( ASH_MAX_HEALTH )
     ash.SetHealth( ash.GetMaxHealth() )
