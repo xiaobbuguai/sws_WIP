@@ -50,7 +50,7 @@ const float INFANTRY_HEALTH_SCALE = 3.5 //2.0before
 const float TITAN_HEALTH_SCALE = 5 //1.5
 const float REAPER_HEALTH_SCALE = 4 //2.0before
 // npc damage
-const float NPC_TITAN_CORE_METER_MULTIPLIER = 3 // npc titan's core multiplier,before is 2.5
+const float NPC_TITAN_CORE_METER_MULTIPLIER = 4 // npc titan's core multiplier,before is 2.5
 const float NPC_TITAN_EJECTING_DELAY = 2.5 // npc pilot ejecting delay after doom,before is3.0
 
 // wave point settings
