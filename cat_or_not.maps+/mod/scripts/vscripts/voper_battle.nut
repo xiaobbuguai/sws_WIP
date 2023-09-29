@@ -71,7 +71,7 @@ const float SECOND_WAVE_TIMEOUT = -1 // -1 means infinite timeout
 // unlimited spawn wave( phase3 )
 const int UNLIMITED_SPAWN_SQUADS_COUNT = 7  //5 before
 const int UNLIMITED_SPAWN_REAPERS_COUNT = 6  //4 before
-const int UNLIMITED_SPAWN_TITANS_COUNT = 5   //3  before
+const int UNLIMITED_SPAWN_TITANS_COUNT = 8   //3  before
 const float UNLIMITED_SPAWN_TIMEOUT = -1 // -1 means infinite timeout
 
 // notification settings
