@@ -1,0 +1,628 @@
+untyped
+
+global const NPC_TITAN_PILOT_PROTOTYPE = true
+global function AiPilots_Init
+
+#if NPC_TITAN_PILOT_PROTOTYPE
+global function NpcPilotRunsToEmbarkTitan
+global function NpcPilotEmbarksTitan
+global function NpcPilotDisembarksTitan
+global function NpcPilotBecomesTitan
+global function NpcTitanBecomesPilot
+global function TitanHasNpcPilot
+global function NpcPilotGetPetTitan
+global function NpcPilotSetPetTitan
+// vanilla missing
+global function GetTitanNpcPilotPetOwner
+global function TitanIsNpcPilotPetTitan
+#endif
+
+global function AddCallback_OnNpcTitanBecomesPilot
+global function AddCallback_OnNpcPilotBecomesTitan
+
+// modified
+global struct NPCPilotWeaponStruct
+{
+	string weaponName
+	array<string> weaponMods
+}
+
+global struct NPCPilotStruct
+{
+	bool isValid = false
+
+	int team
+	int spawnflags
+	float accuracy
+	float proficieny
+	//float health // why respawn adding this as float?
+	int health
+	float physDamageScale
+	
+	array<NPCPilotWeaponStruct> weapons // modified to use a struct
+	string grenadeWeapon // modified to add
+	string squadName
+
+	asset modelAsset
+	string title
+
+	bool isInvulnerable
+}
+
+const NPC_NEXT_TITANTIME_RESET = 1
+const NPC_NEXT_TITANTIME_MIN = 45
+const NPC_NEXT_TITANTIME_MAX = 60
+const NPC_NEXT_TITANTIME_INTERUPT = 15
+
+function AiPilots_Init()
+{
+	RegisterSignal( "grenade_throw" )
+	RegisterSignal( "NpcPilotBecomesTitan" )
+	RegisterSignal( "NpcTitanBecomesPilot" )
+	RegisterSignal( "StopCallTitanThink" )
+	RegisterSignal( "NpcTitanRespawnAvailableUpdated" )
+
+	level.onNpcPilotBecomesTitanCallbacks	<- []
+	level.onNpcTitanBecomesPilotCallbacks	<- []
+
+	// modified
+	AddSpawnCallback( "npc_pilot_elite", OnNpcPilotSpawned )
+	RegisterSignal( "StopRunsToEmbark" )
+}
+
+// modified
+// we could have setup npc pilot here
+void function OnNpcPilotSpawned( entity pilot )
+{
+	pilot.s.petTitan <- null
+	pilot.s.nextTitanRespawnAvailable <- null
+}
+
+function ScriptCallback_OnNpcPilotBecomesTitan( pilot, titan )
+{
+	local result = { pilot = pilot, titan = titan }
+	Signal( pilot, "NpcPilotBecomesTitan", result )
+	Signal( titan, "NpcPilotBecomesTitan", result )
+
+	foreach ( callbackFunc in level.onNpcPilotBecomesTitanCallbacks )
+	{
+		callbackFunc( pilot, titan )
+	}
+}
+
+function ScriptCallback_OnNpcTitanBecomesPilot( pilot, titan )
+{
+	local result = { pilot = pilot, titan = titan }
+	Signal( pilot, "NpcTitanBecomesPilot", result )
+	Signal( titan, "NpcTitanBecomesPilot", result )
+
+	foreach ( callbackFunc in level.onNpcTitanBecomesPilotCallbacks )
+	{
+		callbackFunc( pilot, titan )
+	}
+}
+
+function AddCallback_OnNpcPilotBecomesTitan( callbackFunc )
+{
+	Assert( "onNpcPilotBecomesTitanCallbacks" in level )
+	AssertParameters( callbackFunc, 2, "pilotNPC, titanNPC" )
+
+	level.onNpcPilotBecomesTitanCallbacks.append( callbackFunc )
+}
+
+function AddCallback_OnNpcTitanBecomesPilot( callbackFunc )
+{
+	Assert( "onNpcTitanBecomesPilotCallbacks" in level )
+	AssertParameters( callbackFunc, 2, "pilotNPC, titanNPC" )
+
+	level.onNpcTitanBecomesPilotCallbacks.append( callbackFunc )
+}
+
+#if NPC_TITAN_PILOT_PROTOTYPE
+/************************************************************************************************\
+
+ ######     ###    ##       ##             #### ##    ##       ######## #### ########    ###    ##    ##
+##    ##   ## ##   ##       ##              ##  ###   ##          ##     ##     ##      ## ##   ###   ##
+##        ##   ##  ##       ##              ##  ####  ##          ##     ##     ##     ##   ##  ####  ##
+##       ##     ## ##       ##              ##  ## ## ##          ##     ##     ##    ##     ## ## ## ##
+##       ######### ##       ##              ##  ##  ####          ##     ##     ##    ######### ##  ####
+##    ## ##     ## ##       ##              ##  ##   ###          ##     ##     ##    ##     ## ##   ###
+ ######  ##     ## ######## ########       #### ##    ##          ##    ####    ##    ##     ## ##    ##
+
+\************************************************************************************************/
+
+//HACK -> this behavior should be completely in code
+// function modified: passing a embark set so pilot can find existing titan's embarking pos
+// also, allowing to choose thread or don't
+// mostly we should never use waitthread...
+//void function NpcPilotRunsToEmbarkTitan( entity pilot, entity titan )
+void function NpcPilotRunsToEmbarkTitan( entity pilot, entity titan, embarkSet = null, bool waitthreadFunc = false )
+{
+	titan.EndSignal( "OnDeath" )
+	titan.EndSignal( "OnDestroy" )
+	pilot.EndSignal( "OnDeath" )
+	pilot.EndSignal( "OnDestroy" )
+	pilot.EndSignal( "StopRunsToEmbark" ) // for manually cancel embarks
+
+	pilot.SetNoTarget( true )
+	pilot.Anim_Stop()
+	// want they move faster to their titans
+	//pilot.DisableNPCMoveFlag( NPCMF_INDOOR_ACTIVITY_OVERRIDE )
+	//pilot.EnableNPCMoveFlag( NPCMF_IGNORE_CLUSTER_DANGER_TIME | NPCMF_PREFER_SPRINT )
+	pilot.DisableNPCMoveFlag( NPCMF_INDOOR_ACTIVITY_OVERRIDE | NPCMF_FOLLOW_SAFE_PATHS )
+	pilot.EnableNPCMoveFlag( NPCMF_DISABLE_DANGEROUS_AREA_DISPLACEMENT | NPCMF_IGNORE_CLUSTER_DANGER_TIME | NPCMF_PREFER_SPRINT )
+	pilot.DisableArrivalOnce( true )
+	bool canMoveAndShoot = pilot.GetCapabilityFlag( bits_CAP_MOVE_SHOOT )
+	pilot.SetCapabilityFlag( bits_CAP_MOVE_SHOOT, false )
+
+	OnThreadEnd(
+		function () : ( pilot, canMoveAndShoot )
+		{
+			//print( "NpcPilotRunsToEmbarkTitan: OnThreadEnd()!" )
+			if ( !IsAlive( pilot ) )
+				return
+
+			pilot.SetNoTarget( false )
+			//pilot.EnableNPCMoveFlag( NPCMF_INDOOR_ACTIVITY_OVERRIDE )
+			//pilot.DisableNPCMoveFlag( NPCMF_IGNORE_CLUSTER_DANGER_TIME | NPCMF_PREFER_SPRINT )
+			pilot.EnableNPCMoveFlag( NPCMF_INDOOR_ACTIVITY_OVERRIDE | NPCMF_FOLLOW_SAFE_PATHS )
+			pilot.DisableNPCMoveFlag( NPCMF_DISABLE_DANGEROUS_AREA_DISPLACEMENT | NPCMF_IGNORE_CLUSTER_DANGER_TIME | NPCMF_PREFER_SPRINT )
+			pilot.SetCapabilityFlag( bits_CAP_MOVE_SHOOT, canMoveAndShoot )
+		}
+	)
+
+	local titanSubClass = GetSoulTitanSubClass( titan.GetTitanSoul() )
+	// only find embark set if we're not passing one into here
+	//local embarkSet = FindBestEmbarkForNpcAnim( pilot, titan )
+	if ( embarkSet == null )
+		embarkSet = FindBestEmbarkForNpcAnim( pilot, titan )
+	string pilotAnim = GetAnimFromAlias( titanSubClass, embarkSet.animSet.thirdPersonKneelingAlias )
+
+	pilot.ClearAllEnemyMemory()
+	// why we have to make them turn to anim's pos?
+	// adding two parameter to make pilot embark when they've getting close to correct position
+	//waitthread RunToAnimStartForced_Deprecated( pilot, pilotAnim, titan, "hijack" )
+	// also, allowing to choose thread or don't
+	// mostly we should never use waitthread...
+	if ( waitthreadFunc )
+		waitthread RunToAnimStartForced_Deprecated( pilot, pilotAnim, titan, "hijack", true, true )
+	else
+		thread RunToAnimStartForced_Deprecated( pilot, pilotAnim, titan, "hijack", true, true )
+}
+
+/************************************************************************************************\
+
+ ######  ##      ## #### ########  ######  ##     ##
+##    ## ##  ##  ##  ##     ##    ##    ## ##     ##
+##       ##  ##  ##  ##     ##    ##       ##     ##
+ ######  ##  ##  ##  ##     ##    ##       #########
+      ## ##  ##  ##  ##     ##    ##       ##     ##
+##    ## ##  ##  ##  ##     ##    ##    ## ##     ##
+ ######   ###  ###  ####    ##     ######  ##     ##
+
+\************************************************************************************************/
+function NpcPilotEmbarksTitan( entity pilot, entity titan )
+{
+	Assert( IsAlive( pilot ) )
+	Assert( IsAlive( titan ) )
+	Assert( !pilot.IsTitan() )
+	Assert( titan.IsTitan() )
+
+	pilot.EndSignal( "OnDeath" )
+	pilot.EndSignal( "OnDestroy" )
+	titan.EndSignal( "OnDeath" )
+	titan.EndSignal( "OnDestroy" )
+
+	/* // move to actual embarking animation
+	OnThreadEnd(
+		function () : ( titan, pilot )
+		{
+			if ( IsAlive( titan ) )
+			{
+				if ( titan.ContextAction_IsBusy() )
+					titan.ContextAction_ClearBusy()
+				titan.ClearInvulnerable()
+
+				Assert( !IsAlive( pilot ) )
+			}
+		}
+	)
+	*/
+
+	local titanSubClass = GetSoulTitanSubClass( titan.GetTitanSoul() )
+	local embarkSet = FindBestEmbark( pilot, titan )
+
+	while ( embarkSet == null )
+	{
+		//wait 1.0
+		WaitFrame() // make embarking faster?
+		embarkSet = FindBestEmbark( pilot, titan )
+	}
+
+	// defensive fix for sometimes players try robbing titans
+	if ( titan.ContextAction_IsActive() )
+		return
+	if( !titan.IsInterruptable() ) 
+		return
+	if ( IsValid( titan.GetParent() ) )
+		return
+	if ( !titan.GetTitanSoul() )
+		return
+
+	FirstPersonSequenceStruct sequence
+	sequence.attachment = "hijack"
+	sequence.useAnimatedRefAttachment = expect bool ( embarkSet.action.useAnimatedRefAttachment )
+	sequence.blendTime = 0.5
+	sequence.thirdPersonAnim = GetAnimFromAlias( titanSubClass, embarkSet.animSet.thirdPersonKneelingAlias )
+	//local pilotAnim = GetAnimFromAlias( titanSubClass, embarkSet.animSet.thirdPersonKneelingAlias )
+	local titanAnim = embarkSet.animSet.titanKneelingAnim
+
+	if ( !titan.ContextAction_IsActive() && !titan.ContextAction_IsBusy() ) //might be set from kneeling
+		titan.ContextAction_SetBusy()
+	if ( !pilot.ContextAction_IsActive() && !pilot.ContextAction_IsBusy() )
+		pilot.ContextAction_SetBusy()
+
+	if ( IsCloaked( pilot ) )
+		pilot.SetCloakDuration( 0, 0, 1.5 )
+
+	// since we've removed invulnerable for titan, needs to handle titan killed condition
+	table result = {
+		embarkSucceeded = false
+	}
+
+	OnThreadEnd
+	(
+		function(): ( pilot, titan, result )
+		{
+			if ( IsAlive( titan ) )
+			{
+				if ( titan.ContextAction_IsBusy() )
+					titan.ContextAction_ClearBusy()
+			}
+
+			if ( !result.embarkSucceeded ) // function didn't reach last line
+			{
+				if ( !IsAlive( titan ) && IsAlive( pilot ) ) // titan killed but pilot still alive
+					pilot.Die( null, null, { damageSourceId = damagedef_suicide, scriptType = DF_RAGDOLL } ) // kill the pilot!
+			}
+		}
+	)
+	//
+	
+	// this fucks things up
+	//pilot.SetParent( titan, "hijack", false, 0.5 ) //the time is just in case their not exactly at the right starting position
+	//EmitSoundOnEntity( titan, embarkSet.audioSet.thirdPersonKneelingAudioAlias )
+	//thread PlayAnim( pilot, pilotAnim, titan, "hijack" )
+	//waitthread PlayAnim( titan, titanAnim )
+
+	// invulnerable done here, titan never get invulnerable.
+	local isInvulnerable = pilot.IsInvulnerable()
+	pilot.SetInvulnerable()
+	//titan.SetInvulnerable()
+
+	// better one!
+	HideName( pilot )
+	thread FirstPersonSequence( sequence, pilot, titan )
+	waitthread PlayAnimGravity( titan, titanAnim )
+
+	if ( !isInvulnerable || IsMultiplayer() ) // due pilot embarked and going to be destroyed, always clear it if mp
+		pilot.ClearInvulnerable()
+
+	// adding here: mark the titan as stand
+	SetStanceStand( titan.GetTitanSoul() )
+	result.embarkSucceeded = true // mark as embark succeeded
+
+	NpcPilotBecomesTitan( pilot, titan )
+}
+
+entity function NpcPilotDisembarksTitan( entity titan )
+{
+	Assert( titan.IsTitan() )
+	Assert( TitanHasNpcPilot( titan ) )
+
+	entity pilot = NpcTitanBecomesPilot( titan )
+	Assert( !pilot.IsTitan() )
+
+	// modified: has been setup in NpcTitanBecomesPilot()
+	//NpcPilotSetPetTitan( pilot, titan )
+
+	thread __NpcPilotDisembarksTitan( pilot, titan )
+
+	return pilot
+}
+
+// this function is currently unfinished!
+function __NpcPilotDisembarksTitan( pilot, titan )
+{
+	expect entity( pilot )
+	expect entity( titan )
+
+	if ( !titan.ContextAction_IsActive() && !titan.ContextAction_IsBusy() )
+		titan.ContextAction_SetBusy()
+	if ( !pilot.ContextAction_IsActive() && !pilot.ContextAction_IsBusy() )
+		pilot.ContextAction_SetBusy()
+
+	if ( pilot.GetTitle() != "" )
+		titan.SetTitle( pilot.GetTitle() + " 的自動泰坦" )
+
+	// moved down
+	//local isInvulnerable = pilot.IsInvulnerable()
+	//pilot.SetInvulnerable()
+	//titan.SetInvulnerable()
+
+	// since we've removed invulnerable for titan, needs to handle titan killed condition
+	pilot.EndSignal( "OnDestroy" )
+	titan.EndSignal( "OnDeath" )
+	titan.EndSignal( "OnDestroy" )
+
+	table result = {
+		disembarkSucceeded = false
+	}
+
+	OnThreadEnd
+	(
+		function(): ( pilot, titan, result )
+		{
+			if ( !result.disembarkSucceeded ) // function didn't reach last line
+			{
+				if ( !IsAlive( titan ) && IsAlive( pilot ) ) // titan killed but pilot still alive
+					pilot.Die( null, null, { damageSourceId = damagedef_suicide, scriptType = DF_RAGDOLL } ) // kill the pilot!
+			}
+		}
+	)
+	//
+
+	local pilot3pAnim, pilot3pAudio, titanDisembarkAnim
+	local titanSubClass = GetSoulTitanSubClass( titan.GetTitanSoul() )
+	local standing = titan.GetTitanSoul().GetStance() >= STANCE_STANDING // STANCE_STANDING = 2, STANCE_STAND = 3
+
+	if ( standing )
+	{
+		titanDisembarkAnim = "at_dismount_stand"
+		pilot3pAnim = "pt_dismount_" + titanSubClass + "_stand"
+		pilot3pAudio = titanSubClass + "_Disembark_Standing_3P"
+	}
+	else
+	{
+		titanDisembarkAnim = "at_dismount_crouch"
+		pilot3pAnim = "pt_dismount_" + titanSubClass + "_crouch"
+		pilot3pAudio = titanSubClass + "_Disembark_Kneeling_3P"
+	}
+
+	// invulnerable done here, titan never get invulnerable.
+	local isInvulnerable = pilot.IsInvulnerable()
+	pilot.SetInvulnerable()
+
+	// build firstPersonSequence struct
+	// taken from sh_titan_embark.gnut
+	FirstPersonSequenceStruct sequence
+	sequence.blendTime = 0
+	sequence.teleport = true
+	sequence.attachment = "hijack"
+	sequence.thirdPersonAnim = expect string( pilot3pAnim )
+	// no fp anim for npc pilots
+	local titanAnim = titanDisembarkAnim
+
+//	pilot.SetParent( titan, "hijack" )
+	//EmitSoundOnEntity( titan, pilot3pAudio )
+	// should use firstPersonSequence instead of PlayAnim
+	//thread PlayAnim( titan, titanDisembarkAnim )
+	//waitthread PlayAnim( pilot, pilot3pAnim, titan, "hijack" )
+	thread PlayAnimGravity( titan, titanAnim )
+	waitthread FirstPersonSequence( sequence, pilot, titan ) // pilot anim is shorter, wait for it
+
+	pilot.ClearParent() // clear parent from titan
+
+	if ( titan.ContextAction_IsBusy() )
+		titan.ContextAction_ClearBusy()
+	if ( pilot.ContextAction_IsBusy() )
+		pilot.ContextAction_ClearBusy()
+	if ( !isInvulnerable )
+		pilot.ClearInvulnerable()
+	//titan.ClearInvulnerable()
+
+	if ( !standing )
+		SetStanceKneel( titan.GetTitanSoul() )
+
+	// for handling titan killed condition
+	result.disembarkSucceeded = true // mark as embark succeeded
+}
+
+void function NpcPilotBecomesTitan( entity pilot, entity titan )
+{
+	Assert( IsAlive( pilot ) )
+	Assert( IsAlive( titan ) )
+	Assert( IsGrunt( pilot ) || IsPilotElite( pilot ) )
+	Assert( titan.IsTitan() )
+
+	entity titanSoul = titan.GetTitanSoul()
+
+	titanSoul.soul.seatedNpcPilot.isValid				= true
+
+	titanSoul.soul.seatedNpcPilot.team 					= pilot.GetTeam()
+	
+	foreach( entity weapon in pilot.GetMainWeapons() )
+	{
+		NPCPilotWeaponStruct weaponStruct
+		weaponStruct.weaponName = weapon.GetWeaponClassName()
+		weaponStruct.weaponMods = weapon.GetMods()
+		titanSoul.soul.seatedNpcPilot.weapons.append( weaponStruct )
+	}
+	//print( "pilot onboard with weapons count: " + string ( titanSoul.soul.seatedNpcPilot.weapons.len() ) )
+	titanSoul.soul.seatedNpcPilot.grenadeWeapon			= expect string( pilot.kv.grenadeWeaponName )
+
+	titanSoul.soul.seatedNpcPilot.modelAsset 			= pilot.GetModelName()
+	titanSoul.soul.seatedNpcPilot.title 				= pilot.GetTitle()
+
+	titanSoul.soul.seatedNpcPilot.isInvulnerable		= pilot.IsInvulnerable()
+
+	titanSoul.soul.seatedNpcPilot.health				= pilot.GetMaxHealth()
+
+	// respawn missing settings saving
+	titanSoul.soul.seatedNpcPilot.spawnflags			= int( pilot.kv.spawnflags )
+	titanSoul.soul.seatedNpcPilot.accuracy				= float( pilot.kv.AccuracyMultiplier )
+	titanSoul.soul.seatedNpcPilot.proficieny			= float( pilot.kv.WeaponProficiency )
+	titanSoul.soul.seatedNpcPilot.physDamageScale		= float( pilot.kv.physDamageScale )
+
+	titan.SetTitle( titanSoul.soul.seatedNpcPilot.title )
+
+	// vanilla missing, adding this behavior for a fix
+	// bubble can be destroyed properly by SetStanceStand( titan.GetTitanSoul() ) in NpcPilotEmbarksTitan()
+	// no need to use this function
+	//thread DelayedDestroyBubble( titan )
+
+	ScriptCallback_OnNpcPilotBecomesTitan( pilot, titan )
+
+	pilot.Destroy()
+}
+
+// this is a fix
+// bubble can be destroyed properly by SetStanceStand( titan.GetTitanSoul() ) in NpcPilotEmbarksTitan()
+// no need to use this function
+/*
+void function DelayedDestroyBubble( entity titan )
+{
+	wait 0.3
+	if( IsAlive( titan ) )
+	{
+		entity soul = titan.GetTitanSoul()
+		if( !IsValid( soul ) )
+			return
+		entity bubbleShield = soul.soul.bubbleShield
+		if( IsValid( bubbleShield ) )
+			CleanupTitanBubbleShieldVars( titan, soul, bubbleShield )
+	}
+}
+*/
+
+entity function NpcTitanBecomesPilot( entity titan )
+{
+	Assert( IsValid( titan ) )
+	Assert( titan.IsTitan() )
+
+	entity titanSoul = titan.GetTitanSoul()
+	if( !IsValid( titanSoul ) ) // defensive fix for titan.Destroy() situations
+		return
+	titanSoul.soul.seatedNpcPilot.isValid = false
+
+	array<NPCPilotWeaponStruct> weapons 	= titanSoul.soul.seatedNpcPilot.weapons
+	string grenadeWeapon	= titanSoul.soul.seatedNpcPilot.grenadeWeapon
+	string squadName 		= titanSoul.soul.seatedNpcPilot.squadName
+	asset model 			= titanSoul.soul.seatedNpcPilot.modelAsset
+	string title 			= titanSoul.soul.seatedNpcPilot.title
+	int team 				= titanSoul.soul.seatedNpcPilot.team
+	vector origin 			= titan.GetOrigin()
+	vector angles 			= titan.GetAngles()
+	//entity pilot 			= CreateElitePilot( team, origin, angles )
+	entity pilot 			= CreateNPC( "npc_pilot_elite", team, origin, angles )
+	
+	// update to default model
+    pilot.SetModel($"models/humans/pilots/pilot_medium_geist_f.mdl")
+
+	//SetSpawnOption_Weapon( pilot, weapon )
+	SetSpawnOption_SquadName( pilot, squadName )
+	pilot.SetValueForModelKey( model )
+	// grenades have to set up before DispatchSpawn()
+	if ( grenadeWeapon != "" )
+		pilot.kv.grenadeWeaponName = grenadeWeapon
+	DispatchSpawn( pilot )
+	// hardcoded
+	pilot.SetTitle( title )
+	if( weapons.len() > 0 )
+	{
+		pilot.TakeActiveWeapon()
+		foreach( int index, NPCPilotWeaponStruct weapon in weapons )
+		{
+			//print( "giving disembarking pilot weapon: " + weapon.weaponName )
+			pilot.GiveWeapon( weapon.weaponName, weapon.weaponMods ) //[ "npc_elite_weapon" ]
+			if( index == 0 ) // maybe main weapon
+				pilot.SetActiveWeaponByName( weapon.weaponName )
+		}
+	}
+	pilot.SetModel( model ) // this is a hack, trying to avoid having a model spawn option because its easy to abuse
+	pilot.EnableNPCFlag( NPC_ALLOW_PATROL | NPC_ALLOW_INVESTIGATE | NPC_ALLOW_FLEE ) // this one is hardcoded, can change it through callbacks
+	
+	Highlight_SetEnemyHighlight( pilot, "enemy_player" )
+
+	//NpcResetNextTitanRespawnAvailable( pilot )
+
+	pilot.kv.max_health 			= titanSoul.soul.seatedNpcPilot.health
+	pilot.kv.health 				= titanSoul.soul.seatedNpcPilot.health
+
+	// respawn missing settings saving
+	pilot.kv.spawnflags 			= titanSoul.soul.seatedNpcPilot.spawnflags
+	pilot.kv.AccuracyMultiplier 	= titanSoul.soul.seatedNpcPilot.accuracy
+	pilot.kv.WeaponProficiency 		= titanSoul.soul.seatedNpcPilot.proficieny
+	pilot.kv.physDamageScale 		= titanSoul.soul.seatedNpcPilot.physDamageScale
+
+	// never make pilot invulnerable in this section
+	//if ( titanSoul.soul.seatedNpcPilot.isInvulnerable )
+	//	pilot.SetInvulnerable()
+
+	titan.SetOwner( pilot )
+	NPCFollowsNPC( titan, pilot )
+
+	UpdateEnemyMemoryFromTeammates( pilot )
+
+	ScriptCallback_OnNpcTitanBecomesPilot( pilot, titan )
+
+	// respawn missing: should always setup pet titan on titan transfer
+	NpcPilotSetPetTitan( pilot, titan )
+
+	return pilot
+}
+
+bool function TitanHasNpcPilot( entity titan )
+{
+	Assert( titan.IsTitan() )
+
+	entity titanSoul = titan.GetTitanSoul()
+	if ( !IsValid( titanSoul ) )
+		return false
+
+	if ( !titanSoul.soul.seatedNpcPilot.isValid )
+		return false
+
+	return true
+}
+
+entity function NpcPilotGetPetTitan( entity pilot )
+{
+	Assert( !pilot.IsTitan() )
+	Assert( "petTitan" in pilot.s )
+
+	if ( !IsAlive( expect entity( pilot.s.petTitan ) ) )
+		return null
+
+	Assert( pilot.s.petTitan.IsTitan() )
+	return expect entity( pilot.s.petTitan )
+}
+
+void function NpcPilotSetPetTitan( entity pilot, entity titan )
+{
+	Assert( !pilot.IsTitan() )
+	Assert( titan.IsTitan() )
+	Assert( "petTitan" in pilot.s )
+
+	pilot.s.petTitan = titan
+	pilot.Signal( "PetTitanUpdated" )
+}
+
+// modified function for getting titan's npc pilot owner
+entity function GetTitanNpcPilotPetOwner( entity titan )
+{
+	foreach ( entity pilot in GetNPCArrayByClass( "npc_pilot_elite" ) )
+	{
+		if ( "petTitan" in pilot.s && pilot.s.petTitan == titan )
+			return pilot
+	}
+
+	return null
+}
+
+bool function TitanIsNpcPilotPetTitan( entity titan )
+{
+	return IsValid( GetTitanNpcPilotPetOwner( titan ) )
+}
+
+#endif // NPC_TITAN_PILOT_PROTOTYPE

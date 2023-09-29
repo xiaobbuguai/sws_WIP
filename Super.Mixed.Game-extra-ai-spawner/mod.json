@@ -1,0 +1,105 @@
+{
+	"Name": "Extra AI Spawner",
+	"Description": "Add more AI spawn contents",
+	"Version": "1.0.0",
+	"LoadPriority": 10, // Add TitanFrameWork compatibility, add higher load priority to overwrite
+
+	"Dependencies": {
+		// Add TitanFrameWork compatibility
+		// https://northstar.thunderstore.io/package/The_Peepeepoopoo_man/Titanframework/
+		"EXTRA_SPAWNER_HAS_TITAN_FRAMEWORK": "Peepee.TitanFramework",
+		// Modded titan spawn support
+		"EXTRA_SPAWNER_HAS_BRUTE4": "Dinorush.Brute4",
+		"EXTRA_SPAWNER_HAS_ARCHON": "Moblin.Archon"
+	},
+
+    "Scripts": [
+		// npc spawn scripts
+        {
+            "Path": "/modai/extra_ai_spawner.gnut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "ExtraAISpawner_Init"
+			}
+		},
+		// npc spawn scripts end
+		// mp boss npc scripts
+		{
+            "Path": "/modai/_boss_titan_mp.gnut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "Multiplayer_BossTitan_Init"
+			}
+		},
+		{
+            "Path": "/modai/_boss_titan_intro.gnut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "MP_Boss_Titans_Intro_Init"
+			}
+		},
+		{
+            "Path": "/modai/_boss_titan_conversation.gnut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "MP_BossTitan_Conversation_Init"
+			}
+		},
+		// mp boss npc scripts end
+		// gamemode scripts
+		{
+            "Path": "/modgamemodes/gamemode_aitdm_extend.gnut",
+			"RunOn": "SERVER && MP"
+		},
+		{
+            "Path": "/sharedutil/riff_aitdm_extend.gnut",
+			"RunOn": "( CLIENT || SERVER ) && MP",
+			"ClientCallback": {
+				"After": "Riff_AITdm_Extend_Init"
+			},
+			"ServerCallback": {
+				"After": "Riff_AITdm_Extend_Init"
+			}
+		},
+		// gamemode scripts end
+		// modified utility scripts
+		{
+            "Path": "/modmelee/_melee_synced_npc.gnut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+				"After": "MeleeSyncedNPC_Init"
+			}
+		},
+		{
+			"Path": "/modmelee/_modded_melee_synced_human.gnut",
+			"RunOn": "SERVER",
+            "ServerCallback": {
+                "After": "Modded_Melee_Synced_Human_Init"
+            }	
+		},
+		{
+			"Path": "/titanutil/_titan_loadout_switch.nut",
+			"RunOn": "SERVER && MP",
+			"ServerCallback": {
+                "After": "TitanLoadoutSwitch_Init"
+            }
+		},
+		// modified utility scripts end
+		// northstar missing weapon scripts
+		{
+			"Path": "/modweapons/northstar_miss/mp_weapon_shotgun_doublebarrel_tfo_fixed.gnut",
+			"RunOn": "CLIENT || SERVER",
+			"ClientCallback": {
+                "After": "MpWeaponShotgunDoubleBarrelTFO_Init"
+            },
+            "ServerCallback": {
+                "After": "MpWeaponShotgunDoubleBarrelTFO_Init"
+            }
+		}
+		// northstar missing weapon scripts end
+    ],
+
+	"Localisation": [
+		"resource/extra_spawner_localization_%language%.txt"
+	]
+}

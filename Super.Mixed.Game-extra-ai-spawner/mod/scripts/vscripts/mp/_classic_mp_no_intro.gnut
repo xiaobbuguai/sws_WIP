@@ -1,0 +1,104 @@
+untyped
+
+global function ClassicMP_DefaultNoIntro_Setup
+global function ClassicMP_DefaultNoIntro_GetLength
+
+global const float NOINTRO_INTRO_PILOT_LENGTH = 10.0
+global const float TITAN_DROP_SPAWN_INTRO_LENGTH = 0.0 // this intro shouldn't have a countdown visually, so we have to set the length of this intro to 0
+
+void function ClassicMP_DefaultNoIntro_Setup()
+{
+	AddCallback_OnClientConnected( ClassicMP_DefaultNoIntro_SpawnPlayer )
+	AddCallback_GameStateEnter( eGameState.Prematch, ClassicMP_DefaultNoIntro_Start )
+}
+
+float function ClassicMP_DefaultNoIntro_GetLength()
+{
+	if ( ShouldIntroSpawnAsTitan() )
+		return TITAN_DROP_SPAWN_INTRO_LENGTH
+	else
+		return NOINTRO_INTRO_PILOT_LENGTH
+		
+	unreachable
+}
+
+void function ClassicMP_DefaultNoIntro_Start()
+{
+	ClassicMP_OnIntroStarted()
+
+	foreach ( entity player in GetPlayerArray() )
+		ClassicMP_DefaultNoIntro_SpawnPlayer( player )
+
+	// intro stuck for gamemode_kraber. needs debug print
+	// rework here try to fix intro stuck
+	thread EndIntroWhenFinished()
+}
+
+void function EndIntroWhenFinished()
+{
+	// good to use this instead of a const
+	wait ClassicMP_GetIntroLength()
+
+	ClassicMP_OnIntroFinished()
+}
+
+void function ClassicMP_DefaultNoIntro_SpawnPlayer( entity player )
+{
+	if ( GetGameState() != eGameState.Prematch )
+		return
+	
+	if ( IsPrivateMatchSpectator( player ) ) // private match spectators use custom spawn logic
+	{
+		RespawnPrivateMatchSpectator( player )
+		return
+	}
+	
+	if ( IsAlive( player ) )
+		player.Die()
+	
+	if ( ShouldIntroSpawnAsTitan() )
+		thread ClassicMP_DefaultNoIntro_TitanSpawnPlayer( player )
+	else
+		thread ClassicMP_DefaultNoIntro_PilotSpawnPlayer( player )
+}
+
+// spawn as pilot for intro
+void function ClassicMP_DefaultNoIntro_PilotSpawnPlayer( entity player )
+{
+	player.EndSignal( "OnDestroy" )
+
+	WaitFrame() // wait for next frame so player can be killed properly and other on-spawn functions can set up( specially for client script inits )
+
+	RespawnAsPilot( player )
+	player.FreezeControlsOnServer()
+	AddCinematicFlag( player, CE_FLAG_CLASSIC_MP_SPAWNING )
+	ScreenFadeFromBlack( player, 3.0, 1.0 )
+
+	// intro stuck for gamemode_kraber. needs debug print
+	// rework here try to fix intro stuck
+	waitthread WaitForIntroOver( player ) // wait for intro over. player may feel a little delayed controlling their character
+
+	player.UnfreezeControlsOnServer() // restore player movements
+	RemoveCinematicFlag( player, CE_FLAG_CLASSIC_MP_SPAWNING )
+
+	// do gamemode announcement
+	TryGameModeAnnouncement( player )
+}
+
+void function WaitForIntroOver( entity player )
+{
+	svGlobal.levelEnt.EndSignal( "GameStateChanged" ) // also wait for gamestate change
+
+	FlagWait( "ClassicMPIntroEnd" ) // this flag will be set in ClassicMP_OnIntroFinished()
+}
+
+// spawn as titan for intro
+void function ClassicMP_DefaultNoIntro_TitanSpawnPlayer( entity player )
+{
+	player.EndSignal( "OnDestroy" )
+
+	WaitFrame() // wait for other menus being closed( such as loadout selection )
+	// blocking call
+	RespawnAsTitan( player, false )
+	TryGameModeAnnouncement( player )
+}

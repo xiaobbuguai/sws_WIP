@@ -1,0 +1,22 @@
+WeaponData
+{
+	// vanilla missing callback for npc usage
+	"OnWeaponNpcPrimaryAttack"							"OnWeaponNpcPrimaryAttack_weapon_sniper"
+
+	// NPC usgae, vanilla messed up
+	"fire_sound_1_npc"								"Weapon_Wingman_Elite_Fire_3P"
+	"npc_damage_near_value"   						"28" // 10 in vanilla. was 45, which is too high
+	"npc_damage_far_value"							"23" // 8 in vanilla. was 33, which is too high
+
+	// taken from mozambique
+	"npc_min_burst"									"1"
+	"npc_max_burst"									"1"
+	"npc_rest_time_between_bursts_min"				"0.5"
+	"npc_rest_time_between_bursts_max"				"0.5"
+
+	// taken from kraber
+	"proficiency_poor_spreadscale"					"3.0"
+	"proficiency_average_spreadscale" 				"2.2"
+	"proficiency_good_spreadscale"					"2.0"
+	"proficiency_very_good_spreadscale"   			"1.5"
+}

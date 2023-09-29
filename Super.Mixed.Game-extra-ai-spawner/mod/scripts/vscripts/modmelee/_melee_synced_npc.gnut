@@ -1,0 +1,251 @@
+global function MeleeSyncedNPC_Init
+
+// npc executing players or titans
+global function MeleeSyncedNPC_AllowNPCTitanExecutions
+global function MeleeSyncedNPC_OnlyAllowNPCTitanWithPilotsToExecute // default is true
+global function MeleeSyncedNPC_AllowNPCPilotExecutions
+global function MeleeSyncedNPC_AllowNPCSpectreExecutions
+global function MeleeSyncedNPC_AllowNPCGruntExecutions
+// player executing npc pilot
+global function MeleeSyncedNPC_AllowExecutingNPCPilot // "pilotelite" is not a valid syncedMelee body type, this overwrites it to "human"
+// npc executing each other
+global function MeleeSyncedNPC_AllowNPCPilotExecuteOtherNPCs // pilot models don't have syncedMeleeData, so let them use mp executions
+
+// utility, mostly shared with sh_melee.gnut
+// syncedmelee availability
+global function MeleeSyncedNPC_IsTitanAbleToExecute
+global function MeleeSyncedNPC_IsTitanOnlyAllowedToExecuteWithNPCPilot
+global function MeleeSyncedNPC_IsPilotAbleToExecute
+global function MeleeSyncedNPC_IsSpectreAbleToExecute
+global function MeleeSyncedNPC_IsGruntAbleToExecute
+global function MeleeSyncedNPC_ExecutingNPCPilotAllowed
+global function MeleeSyncedNPC_IsPilotAbleToExecuteOtherNPCs
+
+// must match npcs modifed in this file
+const array<string> NPC_EXECUTION_ALLOWED_ATTACKERS = 
+[ 
+    "npc_titan", 
+    "npc_pilot_elite", 
+    "npc_spectre", 
+    "npc_soldier"
+]
+// anti-crash... for some reason
+const array<string> NPC_EXECUTION_ALLOWED_VICTIMS =
+[
+    "player",
+    "npc_titan", 
+    "npc_pilot_elite", 
+    "npc_spectre", 
+    "npc_soldier"
+]
+// these damageSource triggering npc executions
+const array<int> NPC_EXECUTION_DAMAGESOURCE =
+[
+    eDamageSourceId.auto_titan_melee,
+    //eDamageSourceId.human_melee, // npc pilot uses grunt_melee
+    eDamageSourceId.grunt_melee,
+    eDamageSourceId.spectre_melee,
+
+    // specific ones
+    eDamageSourceId.prowler_melee
+]
+
+// these ref will crash if npc uses them
+// has been fixed by reworking both player_cloak.nut and sh_melee_synced_human.gnut related functions
+/*
+const array<string> HUMANSIZED_NPC_DISALLOWED_REF =
+[
+    "execution_holopilot",
+    "execution_cloak"
+]
+*/
+
+struct
+{
+    // player
+    bool canExecuteNpcPilot = false
+
+    // npcs
+    bool npcTitanExecution = false
+    bool npcTitanWithPilotsOnly = true
+    bool npcPilotExecution = false
+    bool npcSpectreExecution = false
+    bool npcGruntExecution = false
+
+    bool npcPilotExecuteOtherNPCs = false
+} file
+
+void function MeleeSyncedNPC_Init()
+{
+    //print( "Running MeleeSyncedNPC_Init()" )
+    foreach ( int damageSourceID in NPC_EXECUTION_DAMAGESOURCE )
+        AddDamageCallbackSourceID( damageSourceID, NPCTrysSyncedMelee )
+
+    // test!
+    //AddCallback_OnClientConnected( OnClientConnected )
+}
+
+void function NPCTrysSyncedMelee( entity victim, var damageInfo )
+{
+    if( !IsValid( victim ) )
+        return
+    if( !victim.IsPlayer() && !victim.IsNPC() ) // not a valid type to be executed
+        return
+    // anti-crash, technically it should be handled by GetSyncedMeleeChooserForPlayerVsTarget()? maybe because I messed up MeleeThread_PilotVsEnemy()
+    if ( !NPC_EXECUTION_ALLOWED_VICTIMS.contains( victim.GetClassName() ) )
+        return
+
+    entity attacker = DamageInfo_GetAttacker( damageInfo )
+    if( !IsValid( attacker ) )
+        return
+    if( !attacker.IsNPC() )
+        return
+
+    if( attacker.ContextAction_IsActive() || victim.ContextAction_IsActive() ) // already doing a execution?
+		return
+
+    // general availability check
+    if ( !CodeCallback_IsValidMeleeExecutionTarget( attacker, victim ) )
+        return
+
+    // general class check
+    if( !NPC_EXECUTION_ALLOWED_ATTACKERS.contains( attacker.GetClassName() ) )
+        return
+
+    bool canProgress = victim.IsPlayer() || victim.IsTitan()
+    // specific class checks
+    // npc pilot try perform mp executions against other npcs
+    if ( IsPilotElite( attacker ) )
+    {
+        if ( victim.IsPlayer() && !file.npcPilotExecution )
+            canProgress = false
+        else if ( victim.IsNPC() && file.npcPilotExecuteOtherNPCs )
+            canProgress = true
+        //print( "pilotElite canProgress: " + string( canProgress ) )
+    }
+    // other npcs do have their syncedMeleeData, no need to perform a mp execution against other npcs
+    if( IsSpectre( attacker ) )
+    {
+        if ( !file.npcSpectreExecution )
+            canProgress = false
+    }
+    if( IsGrunt( attacker ) )
+    {
+        if ( !file.npcGruntExecution )
+            canProgress = false
+    }
+    
+    if ( !canProgress )
+        return
+
+    // titan specific checks, should basically match AttemptScriptedExecution() checks, now using shared func TitanMelee_CanScriptedExecution()
+    if( attacker.IsTitan() && victim.IsTitan() )
+    {
+        //print( "TitanMelee_CanScriptedExecution() for npc:" + string( TitanMelee_CanScriptedExecution( attacker, victim ) ) )
+        if ( !TitanMelee_CanScriptedExecution( attacker, victim ) )
+			return
+        if ( !GetDoomedState( victim ) ) // victim is not doomed!
+            return
+
+        // this hit will kill the victim
+        // just want them execute more targets. ignore this check
+        //if( DamageInfo_GetDamage( damageInfo ) >= victim.GetHealth() + victim.GetShieldHealth() )
+        //    return
+
+        if( !file.npcTitanExecution )
+            return
+        if( !TitanHasNpcPilot( attacker ) && file.npcTitanWithPilotsOnly )
+            return
+    }
+
+    // debug
+    //Melee_SetExecutionRefsOverride( attacker, ["execution_holopilot", "execution_cloak"] )
+
+    // all checks passed
+    //print( "npc tries synced melee.." )
+    DamageInfo_SetDamage( damageInfo, 0 ) // remove damage from this hit! also remove for titans, since we're using AddDamageCallbackSourceID(), prevent sometimes they get extra damage from following damage callbacks
+    thread PlayerTriesSyncedMelee( attacker, victim )
+}
+
+// mostly no need to change these
+void function MeleeSyncedNPC_AllowNPCTitanExecutions( bool allow )
+{
+    file.npcTitanExecution = allow
+}
+
+void function MeleeSyncedNPC_OnlyAllowNPCTitanWithPilotsToExecute( bool only )
+{
+    file.npcTitanExecution = true
+    file.npcTitanWithPilotsOnly = only
+}
+
+void function MeleeSyncedNPC_AllowNPCPilotExecutions( bool allow )
+{
+    file.npcPilotExecution = allow
+}
+
+void function MeleeSyncedNPC_AllowNPCSpectreExecutions( bool allow )
+{
+    file.npcSpectreExecution = allow
+}
+
+void function MeleeSyncedNPC_AllowNPCGruntExecutions( bool allow )
+{
+    file.npcGruntExecution = allow
+}
+
+void function MeleeSyncedNPC_AllowExecutingNPCPilot( bool allow )
+{
+    file.canExecuteNpcPilot = allow
+}
+
+void function MeleeSyncedNPC_AllowNPCPilotExecuteOtherNPCs( bool allow )
+{
+    file.npcPilotExecuteOtherNPCs = allow 
+}
+
+bool function MeleeSyncedNPC_IsTitanAbleToExecute()
+{
+    return file.npcTitanExecution
+}
+
+bool function MeleeSyncedNPC_IsTitanOnlyAllowedToExecuteWithNPCPilot()
+{
+    return file.npcTitanExecution && file.npcTitanWithPilotsOnly
+}
+
+bool function MeleeSyncedNPC_IsPilotAbleToExecute()
+{
+    return file.npcPilotExecution
+}
+
+bool function MeleeSyncedNPC_IsSpectreAbleToExecute()
+{
+    return file.npcSpectreExecution
+}
+
+bool function MeleeSyncedNPC_IsGruntAbleToExecute()
+{
+    return file.npcGruntExecution
+}
+
+bool function MeleeSyncedNPC_ExecutingNPCPilotAllowed()
+{
+    return file.canExecuteNpcPilot
+}
+
+bool function MeleeSyncedNPC_IsPilotAbleToExecuteOtherNPCs()
+{
+    return file.npcPilotExecuteOtherNPCs
+}
+
+// test stuff
+void function OnClientConnected( entity player )
+{
+    AddEntityCallback_OnDamaged( player, TEST_GetNPCPilotMeleeDamageSourceID )
+}
+
+void function TEST_GetNPCPilotMeleeDamageSourceID( entity player, var damageInfo )
+{
+    print( "DamageSourceID index is: " + DamageSourceIDToString( DamageInfo_GetDamageSourceIdentifier( damageInfo ) ) )
+}
