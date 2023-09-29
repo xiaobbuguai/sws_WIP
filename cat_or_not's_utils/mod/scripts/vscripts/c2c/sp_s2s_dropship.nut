@@ -735,13 +735,16 @@ void function GoblinEngineFailureThink( ShipStruct ship )
 
 		int attachID = ship.model.LookupAttachment( ship.engineDamageTag )
 		int fxID = GetParticleSystemIndex( GOBLIN_ENGINE_FAILURE )
-		entity effect = StartParticleEffectOnEntity_ReturnEntity( ship.model, fxID, FX_PATTACH_POINT_FOLLOW, attachID )
-		effect.Fire( "Kill", "", 0.25 )
+		if ( attachID > 0 ) // attachID can sometimes be invalid, pretty weird
+		{
+			entity effect = StartParticleEffectOnEntity_ReturnEntity( ship.model, fxID, FX_PATTACH_POINT_FOLLOW, attachID )
+			effect.Fire( "Kill", "", 0.25 )
 
-		if ( IsValid( e.fx ) )
-			e.fx.Destroy()
-		fxID = GetParticleSystemIndex( GOBLIN_ENGINE_DAMAGE )
-		e.fx = StartParticleEffectOnEntity_ReturnEntity( ship.model, fxID, FX_PATTACH_POINT_FOLLOW, attachID )
+			if ( IsValid( e.fx ) )
+				e.fx.Destroy()
+			fxID = GetParticleSystemIndex( GOBLIN_ENGINE_DAMAGE )
+			e.fx = StartParticleEffectOnEntity_ReturnEntity( ship.model, fxID, FX_PATTACH_POINT_FOLLOW, attachID )
+		}
 	}
 
 	if ( IsValid( e.fx ) )
