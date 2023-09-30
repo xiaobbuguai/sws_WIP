@@ -458,8 +458,8 @@ void function SetUpBetrayerOwnedTitan( entity titan, entity owner )
     soul.SetShieldHealth( soul.GetShieldHealthMax() )
 
     // passives
-    PlayerEarnMeter_SetSoulEarnMeterSmokeEnabled( soul, false ) // disable earnmeter smoke
-    TitanLoadoutDef loadout = soul.soul.titanLoadout
+    //PlayerEarnMeter_SetSoulEarnMeterSmokeEnabled( soul, false ) // disable earnmeter smoke
+    //TitanLoadoutDef loadout = soul.soul.titanLoadout
     // give PAS_HYPER_CORE
     if ( SoulHasPassive( soul, ePassives.PAS_HYPER_CORE ) )
     {
