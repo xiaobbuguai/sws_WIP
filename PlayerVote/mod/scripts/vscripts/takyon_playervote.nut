@@ -87,24 +87,24 @@ void function OnPilotBecomesTitan_Threaded( entity player, entity titan )
     thread GuidePlayerUseEnhancedTitan(player)
     wait 5 // wait for message end
     thread GuideNoVoiceChat(player)
-    wait 5 // wait for message end
-    thread TipsToUseShip(player)
+    //wait 5 // wait for message end
+    //thread TipsToUseShip(player)
 }
 
 void function GuidePlayerUseEnhancedTitan(entity player){
-    NSSendAnnouncementMessageToPlayer( player, "溫馨提示", "请找一找地图上的触发按钮哦！", <255,255,255>, 2, 1 )
+    NSSendAnnouncementMessageToPlayer( player, "溫馨提示", "請注意地圖的毒蛇召喚按鈕！", <255,255,255>, 2, 1 )
 }
 void function GuideNoVoiceChat(entity player){
-    NSSendAnnouncementMessageToPlayer( player, "小贴士", "有的地方藏了一些小彩蛋AWA", <255,255,255>, 2, 1 )
+    NSSendAnnouncementMessageToPlayer( player, "小貼士", "有些地方藏了彩蛋AWA", <255,255,255>, 2, 1 )
 }
 
 void function WelcomePlayerOnAboard(entity player){
     NSSendAnnouncementMessageToPlayer( player, "星願服歡迎您", HELP_MESSAGE, <255,255,255>, 2, 1 )
 }
 
-void function TipsToUseShip(entity player){
-    NSSendAnnouncementMessageToPlayer( player, "使用飞船前请输入/rules了解如何使用", HELP_MESSAGE, <255,255,255>, 2, 1 )
-}
+//void function TipsToUseShip(entity player){
+ //   NSSendAnnouncementMessageToPlayer( player, "使用飞船前请输入/rules了解如何使用", HELP_MESSAGE, <255,255,255>, 2, 1 )
+//}
 
 void function OnPlayerDisconnected(entity player){
     printl("[PV] Triggered OnPlayerDisconnected")

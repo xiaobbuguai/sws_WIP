@@ -142,7 +142,7 @@
 			"Name": "pv_maps",// 这是您的地图池。这些地图之一将被选为下一张地图，允许您进行自定义地图旋转，无论游戏模式如何
 			//"DefaultValue": "mp_angel_city,mp_colony02"
 			// below should be all maps, i wouldnt delete it :)
-			"DefaultValue": "mp_colony02, mp_homestead, mp_black_water_canal, mp_thaw, mp_drydock, mp_forwardbase_kodai"
+			"DefaultValue": "mp_colony02, mp_homestead, mp_black_water_canal, mp_thaw, mp_drydock, mp_forwardbase_kodai, mp_angel_city, mp_eden, mp_glitch, mp_relic02, mp_wargames"
 		},
 		{
 			"Name": "pv_welcome_enabled",

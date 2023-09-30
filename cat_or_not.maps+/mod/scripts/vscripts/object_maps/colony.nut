@@ -16,8 +16,8 @@ void function placeColonyObjects()
 
     if ( !GetDisabledElements().contains( "dropship_station" ) )
     {
-        entity button = CreateSimpleButton( <405.671, 115.202, 1039.96> + <0,10,-4>, <0, 0, 30>, "生成核彈飛船", callback_dropShipButtonTriggered )
-        CreateSimpleButton( <405.671, 115.202, 1039.96> + < 50,10,-4 >, <0, 0, 30>, "告訴你哪裏有尼斯湖小水怪", callback_NessyButtonTriggered )
+        entity button = CreateSimpleButton( <405.671, 115.202, 1039.96> + <0,10,-4>, <0, 0, 30>, "生成核彈（目前無效）", callback_dropShipButtonTriggered )
+        CreateSimpleButton( <405.671, 115.202, 1039.96> + < 50,10,-4 >, <0, 0, 30>, "告訴你哪裏有尼斯湖小水怪（目前無效）", callback_NessyButtonTriggered )
         CreateNessyMessager( button.GetOrigin() + <0,30,0>, <0,180,0>, "The tower is on a cooldown. Try !dropship in the chat <3." )
     }
     CreateSimpleButton( <349,1598,132>, <0, 90, 30>, "獻祭一臺帝王獲得一顆電池", callback_tradeButtonTriggered, 10 )
