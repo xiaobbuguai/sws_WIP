@@ -13,7 +13,7 @@ void function placeBlackWaterObjects()
     CreateSimpleButton( <664, -164, -55>, <0, 90, 0>, "瑞刻五代", callback_ButtonTriggered )
     CreateSimpleButton( <664, -64, -55>, <0, 90, 0>, "玩個球", callback_TowerButtonTriggered )
     CreateSarahCoffeMaker( <664, -264, -55>, <0,0,0> )
-    CreateAshPeaceKraberSeller( <664, 64, -55>, <0,0,0> )
+    //CreateAshPeaceKraberSeller( <664, 64, -55>, <0,0,0> )
     CreateNessy( <55, -187, -150>, <0, 90, 0>, 2 )
 
     file.tower = CreateExpensiveScriptMoverModel( $"models/levels_terrain/mp_black_water_canal/black_water_canal_pipeline_bldg_04_tank_01.mdl", <847, -1458, -1000>, <0,180,0>, SOLID_VPHYSICS, 10000 )

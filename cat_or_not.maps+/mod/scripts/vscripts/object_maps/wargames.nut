@@ -40,7 +40,7 @@ void function placeWarGameObjects()
     CreateNessy( < -536.204, 142.314, 204.031 >, <0, 0, 0>, 0 )
 
     CreateSarahCoffeMaker(  < -7.95934, -345, -127.969>, <0, 0, 0>)//( < -2620, 1586, 116 >, <0,0,0> )
-    CreateAshPeaceKraberSeller( <678.454, -345, -127.969>, <0, 180, 0>)//( < -2718, 1227, -87 >, <0,180,0> )
+    //CreateAshPeaceKraberSeller( <678.454, -345, -127.969>, <0, 180, 0>)//( < -2718, 1227, -87 >, <0,180,0> )
 }
 
 void function callback_ButtonTriggered( entity panel, entity player )

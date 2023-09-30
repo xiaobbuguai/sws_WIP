@@ -12,7 +12,7 @@ void function placeForwardBaseObjects()
 {
     CreateSimpleButton( < -425, 220, 1000 >, <90, 0, 0>, "重力電梯", callback_ButtonTriggered, 5.0 )
     CreateSarahCoffeMaker( <2192.82, -1980.45, 1051.03>, <0,270,0> )
-    CreateAshPeaceKraberSeller( <1979.14, -1980.11, 1051.03>, <0,0,0> )
+    //CreateAshPeaceKraberSeller( <1979.14, -1980.11, 1051.03>, <0,0,0> )
 
     InitKeyTracking()
     CraneCreate( < -2359, 1070, 1236 >, <0,0,0> )

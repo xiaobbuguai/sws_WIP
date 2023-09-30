@@ -21,7 +21,7 @@ void function placeAngelCityObjects()
 {
     CreateNessy( <540, 2316, 169>, <0, 60, 0>, 7 )
     CreateSarahCoffeMaker( <1196, 879, 140>, <0,270,0> )
-    CreateAshPeaceKraberSeller( < 1555, 903, 167 >, <0,0,0> )
+    //CreateAshPeaceKraberSeller( < 1555, 903, 167 >, <0,0,0> )
 
     if ( !GetDisabledElements().contains( "gunship_station" ) )
     {

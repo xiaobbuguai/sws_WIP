@@ -24,7 +24,7 @@ void function placeColonyObjects()
 
     CreateNessy( < -930, -8577, 279 >, <0, 60, 0>, 9 )
     CreateSarahCoffeMaker( < -574, 2717, 158>, <0,0,0> )
-    CreateAshPeaceKraberSeller( < -1308, 2883, 160>, <0,0,0> )
+    //CreateAshPeaceKraberSeller( < -1308, 2883, 160>, <0,0,0> )
 
     entity pole = CreateEntity( "prop_dynamic_lightweight" )
 	pole.SetValueForModelKey( $"models/communication/terminal_com_station_tall.mdl" )

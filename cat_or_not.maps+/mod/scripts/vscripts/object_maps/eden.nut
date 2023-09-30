@@ -32,7 +32,7 @@ void function placeEdenObjects()
     CreatePhaseTeleporter( < -2040.78, 2698.2, 168.738 >, < -3305.58, 596.523, 57.2551 > )
     CreatePhaseTeleporter( <612, -1032, 68>, <612, -1170, 68> )
     CreateSarahCoffeMaker( <2101, 151, 72>, <0,270,0> )
-    CreateAshPeaceKraberSeller( <472, -1032, 88>, <0,-270,0> )
+    //CreateAshPeaceKraberSeller( <472, -1032, 88>, <0,-270,0> )
 
     CreatePropDynamic( $"models/eden/eden_screen_tall.mdl", <472, -840, 68>, <0,180,0>, SOLID_VPHYSICS )
     CreatePropDynamic( $"models/eden/eden_screen_tall.mdl", <680, -840, 68>, <0,180,0>, SOLID_VPHYSICS )
@@ -329,13 +329,13 @@ void function HackingOperation( entity player )
 
     Chat_ServerPrivateMessage( player, "[莎拉] 我先走一步了，下次我會給你準備一杯咖啡的", false )
     wait 2
-    Chat_ServerPrivateMessage( player, "[莎拉] 這把武器送你了", false )
-    if ( IsAlive( player ) && IsValid( player ) ){
-        player.TakeWeaponNow( player.GetActiveWeapon().GetWeaponClassName() )
-        WaitFrame()
-        player.GiveWeapon( "mp_weapon_peacekraber" )
-        }
-    wait 1
+    //Chat_ServerPrivateMessage( player, "[莎拉] 這把武器送你了", false )
+    //if ( IsAlive( player ) && IsValid( player ) ){
+        //player.TakeWeaponNow( player.GetActiveWeapon().GetWeaponClassName() )
+        //WaitFrame()
+        //player.GiveWeapon( "mp_weapon_peacekraber" )
+        //}
+    //wait 1
     Chat_ServerPrivateMessage( player, "[莎拉] 以後想喝咖啡就來TIFFANYS Coffee找我", false )
     MissionAlreadyComplete++
     ShipFlyToPos( ship, CLVec( <5393,-2702,1660> ), <0,-90,0> )
