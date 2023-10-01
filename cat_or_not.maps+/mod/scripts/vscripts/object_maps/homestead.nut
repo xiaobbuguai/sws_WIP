@@ -84,7 +84,6 @@ void function EntitiesDidLoad()
         CreateZipLine( < -2459, -4394, -121>, < -1861, -4133, 10000 >, 0, 100.0 )
     }
     //CreateSimpleButton( <5279, 1716, 22>, <0, 0, 0>, "呼叫莎拉·布裏格斯支援", callback_SarahBriggsButtonTriggered )
-    CreateSimpleButton( <5279, 1716, 76>, <0, 0, 0>, "召喚毒蛇", callback_ValidateVoperRequest , 1.0 )
     //callback_ValidateVoperRequest
     CameraPath path
 

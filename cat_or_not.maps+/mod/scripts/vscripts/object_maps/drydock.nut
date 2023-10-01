@@ -32,7 +32,6 @@ void function placeDrydockObjects()
 
     //CreateSimpleButton( <3237, 325, 410>, <180, 180, 0>, "to know when will Iniquity stream", Callback_MessageButtonTriggered, 60 )
     CreateSimpleButton( <2706, 339, 294 >, <0, 0, 0>, "控製下方大門", MoveDoors, 20 )
-    CreateSimpleButton( <3000, 325, -80>, <0, 0, 0>, "召喚毒蛇", callback_ValidateVoperRequest, 120.0 )
 
     file.door1 = CreateExpensiveScriptMoverModel( $"models/levels_terrain/mp_drydock/dd_warehouse14_panel_01.mdl", <2518, 134, 66>, <0,90,0>, SOLID_VPHYSICS, 10000 )
     file.door2 = CreateExpensiveScriptMoverModel( $"models/levels_terrain/mp_drydock/dd_warehouse14_panel_01.mdl", <2518, 534, 66>, <0,90,0>, SOLID_VPHYSICS, 10000 )
@@ -54,6 +53,13 @@ void function placeDrydockObjects()
 
 
     AddCallback_EntitiesDidLoad( EntitiesDidLoad )
+    AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
+}
+
+void function StartViperBattle()
+{
+    StartVoperBattle( 0 )
+    ResetNessy()
 }
 
 void function EntitiesDidLoad()

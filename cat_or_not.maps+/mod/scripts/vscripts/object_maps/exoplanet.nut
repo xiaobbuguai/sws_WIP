@@ -4,7 +4,6 @@ void function placeExoPlanetObjects()
 {
     CreateNessy( <1594, -2307, 493>, <0, 60, 0>, 8 )
     CreateSimpleButton( < -30, -1398, 0 >, <0, 180, 0>, "獲得寵物服主", Callback_ButtonTriggered )
-    CreateSimpleButton( < 200, -1398, -200 >, <0, 180, 0>, "召喚毒蛇", callback_ValidateVoperRequest, 120.0 )
 
     CreatePhaseTeleporter( < -737.05, -2814.75, -351.969 >, <1453.61, -4251.59, -205.969> )
     AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )

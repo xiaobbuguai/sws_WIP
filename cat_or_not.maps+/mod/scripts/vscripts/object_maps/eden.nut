@@ -38,6 +38,13 @@ void function placeEdenObjects()
     CreatePropDynamic( $"models/eden/eden_screen_tall.mdl", <680, -840, 68>, <0,180,0>, SOLID_VPHYSICS )
 
     AddCallback_EntitiesDidLoad( EntitiesDidLoad )
+    AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
+}
+
+void function StartViperBattle()
+{
+    StartVoperBattle( 0 )
+    ResetNessy()
 }
 
 void function EntitiesDidLoad()

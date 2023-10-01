@@ -9,7 +9,6 @@ void function placeBlackWaterObjects()
 {
     PrecacheModel( $"models/levels_terrain/mp_black_water_canal/black_water_canal_pipeline_bldg_04_tank_01.mdl" )
 
-    CreateSimpleButton( <550, -164, -5>, <0, 0, 0>, "召喚毒蛇", callback_ValidateVoperRequest, 120.0 )
     CreateSimpleButton( <664, -164, -55>, <0, 90, 0>, "瑞刻五代", callback_ButtonTriggered )
     CreateSimpleButton( <664, -64, -55>, <0, 90, 0>, "玩個球", callback_TowerButtonTriggered )
     CreateSarahCoffeMaker( <664, -264, -55>, <0,0,0> )

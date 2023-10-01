@@ -11,7 +11,6 @@ file
 
 void function placeColonyObjects()
 {
-    CreateSimpleButton( <0, 115, 60>, <0, 0, 0>, "召喚毒蛇", callback_ValidateVoperRequest, 120.0 )
     PrecacheModel( $"models/communication/terminal_com_station_tall.mdl" )
 
     if ( !GetDisabledElements().contains( "dropship_station" ) )

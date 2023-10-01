@@ -70,6 +70,13 @@ void function placeGlitchObjects()
     file.panel = panel
 
     thread RunRecordingLoop()
+    AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
+}
+
+void function StartViperBattle()
+{
+    StartVoperBattle( 0 )
+    ResetNessy()
 }
 
 void function EntitiesDidLoad()
