@@ -95,6 +95,13 @@ void function placeAngelCityObjects()
     file.TrainSpeed = GetConVarInt( "train_speed" )
 
     thread RunRecordingLoop()
+    AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
+}
+
+void function StartViperBattle()
+{
+    StartVoperBattle( 0 )
+    ResetNessy()
 }
 
 void function CreateSarahCoffeMaker( vector origin, vector angles )

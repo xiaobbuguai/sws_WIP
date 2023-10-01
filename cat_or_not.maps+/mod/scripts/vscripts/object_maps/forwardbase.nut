@@ -10,9 +10,10 @@ struct
 
 void function placeForwardBaseObjects()
 {
+    vector ViperButtOrigin = < 1185, 1105, 1340 >
     CreateSimpleButton( < -425, 220, 1000 >, <90, 0, 0>, "重力電梯", callback_ButtonTriggered, 5.0 )
     CreateSarahCoffeMaker( <2192.82, -1980.45, 1051.03>, <0,270,0> )
-    //CreateAshPeaceKraberSeller( <1979.14, -1980.11, 1051.03>, <0,0,0> )
+    CreateAshPeaceKraberSeller( <1979.14, -1980.11, 1051.03>, <0,0,0> )
 
     InitKeyTracking()
     CraneCreate( < -2359, 1070, 1236 >, <0,0,0> )
@@ -41,7 +42,15 @@ void function placeForwardBaseObjects()
 
     CreateSimpleButton( < 1185, 905, 1140 >, <0, 0, 30>, "傳送門3，啟動！", callback_ValidatePortalRequest, 120.0 )
 
-    CreateSimpleButton( < 1185, 1105, 1340 >, <0, 0, 0>, "召喚來自小b的毒蛇", callback_ValidateVoperRequest, 1.0 )
+    CreateSimpleButton( ViperButtOrigin, <0, 0, 0>, "召喚來自小b的毒蛇", callback_ValidateVoperRequest, 1.0 )
+
+    AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
+}
+
+void function StartViperBattle()
+{
+    StartVoperBattle( 0 )
+    ResetNessy()
 }
 
 void function callback_ButtonTriggered( entity button, entity player )

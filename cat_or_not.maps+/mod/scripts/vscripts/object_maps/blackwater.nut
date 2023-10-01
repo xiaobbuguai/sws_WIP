@@ -17,6 +17,13 @@ void function placeBlackWaterObjects()
     CreateNessy( <55, -187, -150>, <0, 90, 0>, 2 )
 
     file.tower = CreateExpensiveScriptMoverModel( $"models/levels_terrain/mp_black_water_canal/black_water_canal_pipeline_bldg_04_tank_01.mdl", <847, -1458, -1000>, <0,180,0>, SOLID_VPHYSICS, 10000 )
+    AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
+}
+
+void function StartViperBattle()
+{
+    StartVoperBattle( 0 )
+    ResetNessy()
 }
 
 void function callback_ButtonTriggered( entity button, entity player )

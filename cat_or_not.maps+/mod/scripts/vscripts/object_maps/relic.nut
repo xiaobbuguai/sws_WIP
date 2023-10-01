@@ -8,4 +8,11 @@ void function placeRelicObjects()
 
     CreatePhaseTeleporter( < -4008, -2854.25, 458.924 >, < -2175, -3893.02, 858.033 > )
     CreatePhaseTeleporter( <695.384, -2761.78, 332.031>, <2645.38, -9036.48, -173.011> )
+    AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
+}
+
+void function StartViperBattle()
+{
+    StartVoperBattle( 0 )
+    ResetNessy()
 }

@@ -41,6 +41,13 @@ void function placeWarGameObjects()
 
     CreateSarahCoffeMaker(  < -7.95934, -345, -127.969>, <0, 0, 0>)//( < -2620, 1586, 116 >, <0,0,0> )
     //CreateAshPeaceKraberSeller( <678.454, -345, -127.969>, <0, 180, 0>)//( < -2718, 1227, -87 >, <0,180,0> )
+    AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
+}
+
+void function StartViperBattle()
+{
+    StartVoperBattle( 0 )
+    ResetNessy()
 }
 
 void function callback_ButtonTriggered( entity panel, entity player )

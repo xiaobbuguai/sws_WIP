@@ -57,6 +57,13 @@ void function placeHomesteadObjects()
     AddClientCommandCallback( "dump_cords", DumpCords )
     AddCallback_OnClientConnected( OnPlayerConnected )
     AddCallback_EntitiesDidLoad( EntitiesDidLoad )
+    AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
+}
+
+void function StartViperBattle()
+{
+    StartVoperBattle( 0 )
+    ResetNessy()
 }
 
 void function EntitiesDidLoad()

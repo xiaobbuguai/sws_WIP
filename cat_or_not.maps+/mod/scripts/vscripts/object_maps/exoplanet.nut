@@ -7,6 +7,13 @@ void function placeExoPlanetObjects()
     CreateSimpleButton( < 200, -1398, -200 >, <0, 180, 0>, "召喚毒蛇", callback_ValidateVoperRequest, 120.0 )
 
     CreatePhaseTeleporter( < -737.05, -2814.75, -351.969 >, <1453.61, -4251.59, -205.969> )
+    AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
+}
+
+void function StartViperBattle()
+{
+    StartVoperBattle( 0 )
+    ResetNessy()
 }
 
 void function Callback_ButtonTriggered( entity button, entity player )
