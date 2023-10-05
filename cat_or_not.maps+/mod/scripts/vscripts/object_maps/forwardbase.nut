@@ -42,8 +42,6 @@ void function placeForwardBaseObjects()
 
     CreateSimpleButton( < 1185, 905, 1140 >, <0, 0, 30>, "傳送門3，啟動！", callback_ValidatePortalRequest, 120.0 )
 
-    CreateSimpleButton( ViperButtOrigin, <0, 0, 0>, "召喚來自小b的毒蛇", callback_ValidateVoperRequest, 1.0 )
-
     AddCallback_GameStateEnter( eGameState.Playing, StartViperBattle )
 }
 
